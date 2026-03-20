@@ -15,8 +15,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="mobile-styles.css">
+  <link rel="stylesheet" href="static/styles.css">
+  <link rel="stylesheet" href="static/mobile-styles.css">
 </head>
 <body>
 
@@ -40,19 +40,19 @@
 
     <div class="institution-logos">
       <div class="institution-logo-wrapper">
-        <img src="assets/logos/etri_logo.png" alt="ETRI" class="institution-logo" style="margin-top: 18px;">
+        <img src="static/logos/etri_logo.png" alt="ETRI" class="institution-logo" style="margin-top: 18px;">
         <sup>1</sup>
       </div>
       <div class="institution-logo-wrapper">
-        <img src="assets/logos/kaist_logo.png" alt="KAIST" class="institution-logo" style="margin-top: 18px;">
+        <img src="static/logos/kaist_logo.png" alt="KAIST" class="institution-logo" style="margin-top: 18px;">
         <sup style="left: -1px;">2</sup>
       </div>
       <div class="institution-logo-wrapper">
-        <img src="assets/logos/skk_logo.png" alt="Sungkyunkwan University" class="institution-logo">
+        <img src="static/logos/skk_logo.png" alt="Sungkyunkwan University" class="institution-logo">
         <sup>3</sup>
       </div>
       <div class="institution-logo-wrapper">
-        <img src="assets/logos/deepauto_ai_ci.png" alt="DeepAuto" class="institution-logo" style="height: 42px;">
+        <img src="static/logos/deepauto_ai_ci.png" alt="DeepAuto" class="institution-logo" style="height: 42px;">
         <sup>4</sup>
       </div>
     </div>
@@ -81,7 +81,7 @@
     </div>
 
     <div class="figure-container">
-      <img src="assets/figures/teaser_2.png" alt="Comparison of existing benchmarks and MultihopSpatial" style="max-width: 100%;">
+      <img src="static/figures/teaser_2.png" alt="Comparison of existing benchmarks and MultihopSpatial" style="max-width: 100%;">
       <p class="figure-caption"><strong>Figure:</strong> (Left) Existing benchmarks rely on single-hop standard MCQs without spatial localization. MultihopSpatial requires multi-hop compositional reasoning with grounded evaluation. (Right) Frontier VLMs show high MCQ accuracy (solid bars) but plummet under Acc@50IoU (striped bars), revealing a severe spatial grounding blind spot.</p>
     </div>
 
@@ -115,7 +115,7 @@
     <p class="section-subtitle">Why multi-hop spatial reasoning matters for embodied AI</p>
 
     <div class="figure-container">
-      <img src="assets/figures/teaser_1.png" alt="Multi-hop spatial reasoning for embodied agents" style="max-width: 100%;">
+      <img src="static/figures/teaser_1.png" alt="Multi-hop spatial reasoning for embodied agents" style="max-width: 100%;">
       <p class="figure-caption"><strong>Figure:</strong> A multi-hop spatial reasoning example for an embodied agent in a real-world scenario.</p>
     </div>
 
@@ -163,7 +163,7 @@
     <p>To eliminate the reliability concerns and hallucinations inherent in AI-generated data, all QA pairs and bounding boxes were strictly annotated by ten trained human experts. Each sample underwent a rigorous multi-stage verification with three rounds of independent cross-checking, achieving high inter-annotator agreement (Krippendorff's &alpha; = 0.90). Furthermore, we introduce <strong>MultihopSpatial-Train</strong>, an auxiliary large-scale corpus of 6,791 grounded VQA samples designed to support post-training of VLMs for spatial intelligence.</p>
 
     <div class="figure-container">
-      <img src="assets/figures/hop_statistic.png" alt="Compositional structure and category definitions" style="max-width: 100%;">
+      <img src="static/figures/hop_statistic.png" alt="Compositional structure and category definitions" style="max-width: 100%;">
       <p class="figure-caption"><strong>Figure:</strong> Compositional structure and category definitions in MultihopSpatial.</p>
     </div>
 
@@ -177,7 +177,7 @@
     </div>
 
     <div class="figure-container">
-      <img src="assets/figures/hop_examples.png" alt="Example MultihopSpatial questions" style="max-width: 100%;">
+      <img src="static/figures/hop_examples.png" alt="Example MultihopSpatial questions" style="max-width: 100%;">
       <p class="figure-caption"><strong>Figure:</strong> Example MultihopSpatial questions for 2-hop and 3-hop reasoning under ego-centric (top) and exo-centric (bottom) views.</p>
     </div>
   </div>
@@ -661,7 +661,7 @@
         <p>Evaluating the impact of reasoning complexity across all 37 models reveals a <strong>consistent performance degradation</strong> as the number of hops increases, confirming that compositional spatial reasoning remains a fundamental challenge for current VLMs. Both MCQ accuracy and Acc@50IoU exhibit steep declines from 1-hop to 3-hop.</p>
         <p>Crucially, this degradation is <strong>exacerbated under ego-centric evaluation</strong>, which requires additional perspective transformation. The widening performance gap between ego-centric and exo-centric views at higher hops suggests that perspective-taking compounds with multi-step reasoning, creating a <strong>multiplicative rather than additive difficulty</strong>.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig1_hop_bar.png" alt="Average Performance by Hop Count">
+          <img src="static/figures/fig1_hop_bar.png" alt="Average Performance by Hop Count">
           <p class="figure-caption">Average performance by hop count. Performance degrades consistently as reasoning hops increase.</p>
         </div>
       </div>
@@ -678,7 +678,7 @@
         <p>Beyond a simple performance drop, ego-centric evaluation fundamentally alters capability visibility. Under exo-centric conditions, our Acc@50IoU metric clearly <strong>distinguishes grounding-capable models</strong> (e.g., Qwen3-VL) from those lacking native localization (e.g., InternVL-3.5) despite their similar MCQ accuracies.</p>
         <p>Conversely, ego-centric evaluation acts as an <strong>evaluation blind spot</strong>: it suppresses even strong grounding models to a 20&ndash;25% floor, completely masking these capability gaps. This compression highlights the necessity of evaluating perspectives jointly and reinforces Acc@50IoU as an essential metric to expose disparities invisible to conventional MCQ evaluation.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig11_scatter.png" alt="Scatter plots across perspectives">
+          <img src="static/figures/fig11_scatter.png" alt="Scatter plots across perspectives">
           <p class="figure-caption">Model performance scatter plots. Ego-centric evaluation masks grounding differences visible in exo-centric conditions.</p>
         </div>
       </div>
@@ -695,7 +695,7 @@
         <p>While reasoning models consistently outperform instant models, this <strong>advantage diminishes under multi-hop pressure</strong>. The initial MCQ gain of up to +8 pp at 1-hop narrows considerably by 3-hop.</p>
         <p>Critically, even with extended thinking, reasoning models plummet to <strong>sub-20% MCQ accuracy and sub-10% Acc@50IoU</strong> on 3-hop ego-centric tasks. This convergence toward the performance floor reveals that inference-time reasoning (e.g., chain-of-thought) yields diminishing returns as compositional steps accumulate. MultihopSpatial thus exposes a capability ceiling that test-time compute alone cannot resolve.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig7b_4bars.png" alt="Reasoning vs. Instant Models">
+          <img src="static/figures/fig7b_4bars.png" alt="Reasoning vs. Instant Models">
           <p class="figure-caption">Reasoning vs. Instant models. The reasoning advantage shrinks with increasing hop count.</p>
         </div>
       </div>
@@ -712,7 +712,7 @@
         <p>While proprietary models hold a slight MCQ advantage in ego-centric tasks&mdash;indicating stronger perspective-taking&mdash;<strong>open-weight models consistently dominate in Acc@50IoU</strong>. This reversal stems from a distinct asymmetry in visual grounding capabilities.</p>
         <p>Proprietary models exhibit high variance: while the Gemini-3 series demonstrates robust localization, others (e.g., GPT-5.2, Claude) lack native grounding, significantly dragging down the group average. Conversely, open-weight families (e.g., Qwen3-VL, GLM-4.6V) maintain <strong>consistently high grounding performance</strong>, forming a dense cluster at 60%+ in exo-centric Acc@50IoU.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig8_errorbar.png" alt="Open-weight vs. Proprietary models">
+          <img src="static/figures/fig8_errorbar.png" alt="Open-weight vs. Proprietary models">
           <p class="figure-caption">Open-weight vs. Proprietary models across hop count and viewpoint.</p>
         </div>
       </div>
@@ -729,7 +729,7 @@
         <p>Comparing specialized spatial reasoning models (SRMs) against comparable general-purpose VLMs (&le;10B) reveals a <strong>counterintuitive trend: SRMs consistently underperform</strong> across all metrics and hop counts.</p>
         <p>This shortfall primarily stems from the robust native grounding inherent in general models (e.g., Qwen3-VL), which most SRMs lack. These findings indicate that current SRMs, typically fine-tuned on single-step QA, <strong>fail to generalize to multi-hop scenarios</strong>, suggesting that general-purpose VLMs provide a stronger foundation for compositional spatial understanding.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig10_srm.png" alt="Spatial Reasoning Models vs. General Models">
+          <img src="static/figures/fig10_srm.png" alt="Spatial Reasoning Models vs. General Models">
           <p class="figure-caption">Spatial Reasoning Models vs. General Models (&le;10B).</p>
         </div>
       </div>
@@ -746,16 +746,16 @@
         <p>A striking disconnect exists between answer selection and spatial localization: most models fall far below the y=x line, indicating that high MCQ accuracy does not entail accurate grounding. Across all 37 models, the <strong>average ungrounded ratio reaches 59%</strong>, meaning more than half of correctly answered questions lack proper spatial localization.</p>
         <p>This ratio varies dramatically by category: proprietary instant models exhibit <strong>93% ungrounded accuracy</strong>, while open-weight reasoning models achieve the lowest at 43%. At the extreme, models such as Gemma-3-IT, Molmo2, and Claude-Sonnet-4.5 exceed <strong>98% ungrounded</strong>, effectively answering through shortcuts without any spatial understanding.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig4a_lucky_guess.png" alt="Grounded vs Ungrounded accuracy per model" style="max-width: 100%;">
+          <img src="static/figures/fig4a_lucky_guess.png" alt="Grounded vs Ungrounded accuracy per model" style="max-width: 100%;">
           <p class="figure-caption">Grounded (Acc@50IoU) vs. Ungrounded accuracy per model. Hatched regions indicate ungrounded responses.</p>
         </div>
         <div class="two-col" style="grid-template-columns: 3fr 2fr; align-items: end;">
           <div class="figure-container">
-            <img src="assets/figures/fig3_grounding_gap.png" alt="Grounding Gap" style="width: 100%; height: auto;">
+            <img src="static/figures/fig3_grounding_gap.png" alt="Grounding Gap" style="width: 100%; height: auto;">
             <p class="figure-caption">Grounding Gap: MCQ Acc. vs. Acc@50IoU.</p>
           </div>
           <div class="figure-container">
-            <img src="assets/figures/fig4b_lucky_cat.png" alt="Ungrounded Ratio by Category" style="width: 100%; height: auto;">
+            <img src="static/figures/fig4b_lucky_cat.png" alt="Ungrounded Ratio by Category" style="width: 100%; height: auto;">
             <p class="figure-caption">Ungrounded Ratio by Model Category.</p>
           </div>
         </div>
@@ -773,7 +773,7 @@
         <p>Analyzing model scale across three open-weight families reveals that <strong>scaling the language backbone alone yields limited gains</strong>. While MCQ accuracy shows modest, saturating improvements, Acc@50IoU largely plateaus (e.g., Qwen3-VL) or remains near zero (e.g., Gemma-3-IT).</p>
         <p>A notable exception is InternVL-3.5 at 38B, which exhibits a <strong>sharp grounding jump from 5.2% to 27.4%</strong>. Crucially, this leap coincides with a significant upgrade in its vision encoder (from 300M to 6B), whereas models utilizing fixed, small vision encoders (e.g., Qwen3-VL&rsquo;s 400M) saturate early. This demonstrates that multi-hop spatial reasoning depends critically on <strong>scaling the capacity of visual spatial representations</strong>, not solely the language component.</p>
         <div class="figure-container">
-          <img src="assets/figures/fig9_scale.png" alt="Effect of model scale">
+          <img src="static/figures/fig9_scale.png" alt="Effect of model scale">
           <p class="figure-caption">Effect of model scale on MCQ Accuracy (top) and Acc@50IoU (bottom) across overall and per-hop settings.</p>
         </div>
       </div>
@@ -790,7 +790,7 @@
         <p>Analyzing error rates across spatial tag combinations reveals that while reasoning models consistently outperform instant models, <strong>multi-tag compositions remain a critical bottleneck</strong>. Specifically, the Position-Relation (P-R) combination incurs significantly higher errors than single-tag settings, highlighting the severe difficulty of jointly handling positional localization and relational comparison.</p>
         <p>Even specialized spatial reasoning models, which achieve the lowest overall errors, exhibit non-trivial failures on these complex compositions. This underscores that <strong>true compositional spatial reasoning remains an unresolved challenge</strong> across the current VLM ecosystem.</p>
         <div class="figure-container">
-          <img src="assets/figures/error_rate_radar_5cat.png" alt="Error rates by tag combination">
+          <img src="static/figures/error_rate_radar_5cat.png" alt="Error rates by tag combination">
           <p class="figure-caption">Average error rates (%) by tag combination across model categories. A, R, and P denote Attribute, Relation, and Position.</p>
         </div>
       </div>
@@ -891,7 +891,7 @@
     <p class="section-subtitle">Illustrative failure cases revealing cascading errors in multi-hop spatial reasoning</p>
 
     <div class="figure-container">
-      <img src="assets/figures/failure_case.png" alt="Qualitative failure analysis" style="max-width: 100%;">
+      <img src="static/figures/failure_case.png" alt="Qualitative failure analysis" style="max-width: 100%;">
       <p class="figure-caption"><strong>Figure:</strong> Qualitative failure analysis on a 3-hop ego-centric question. All three models recognized the position condition "in front of," but failed to incorporate it into their final predictions.</p>
     </div>
 
@@ -903,43 +903,43 @@
     <!-- Gallery -->
     <div class="gallery-wrapper" id="qual-gallery">
       <div class="gallery-slide active">
-        <img src="assets/figures/qual_ego3hop1.png" alt="3-hop ego-centric failure case 1">
+        <img src="static/figures/qual_ego3hop1.png" alt="3-hop ego-centric failure case 1">
         <p class="slide-caption">3-Hop Ego-centric: All three models fail to correctly identify the perspective.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_ego3hop2.png" alt="3-hop ego-centric failure case 2">
+        <img src="static/figures/qual_ego3hop2.png" alt="3-hop ego-centric failure case 2">
         <p class="slide-caption">3-Hop Ego-centric: Models struggle with perspective-taking in complex scenes.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_exo3hop1.png" alt="3-hop exo-centric failure case 1">
+        <img src="static/figures/qual_exo3hop1.png" alt="3-hop exo-centric failure case 1">
         <p class="slide-caption">3-Hop Exo-centric: Models fail to retain intermediate conditions throughout the reasoning process.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_exo3hop2.png" alt="3-hop exo-centric failure case 2">
+        <img src="static/figures/qual_exo3hop2.png" alt="3-hop exo-centric failure case 2">
         <p class="slide-caption">3-Hop Exo-centric: Cascading failures from attribute and position conditions.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_ego2hop1.png" alt="2-hop ego-centric failure case 1">
+        <img src="static/figures/qual_ego2hop1.png" alt="2-hop ego-centric failure case 1">
         <p class="slide-caption">2-Hop Ego-centric (att+pos): Shorter reasoning chains still exhibit distinct failure modes.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_ego2hop2.png" alt="2-hop ego-centric failure case 2">
+        <img src="static/figures/qual_ego2hop2.png" alt="2-hop ego-centric failure case 2">
         <p class="slide-caption">2-Hop Ego-centric (att+rel): Models fail in different ways even on the same sample.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_ego2hop3.png" alt="2-hop ego-centric failure case 3">
+        <img src="static/figures/qual_ego2hop3.png" alt="2-hop ego-centric failure case 3">
         <p class="slide-caption">2-Hop Ego-centric (pos+rel): Error in a single intermediate cue propagates to incorrect answer.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_exo2hop1.png" alt="2-hop exo-centric failure case 1">
+        <img src="static/figures/qual_exo2hop1.png" alt="2-hop exo-centric failure case 1">
         <p class="slide-caption">2-Hop Exo-centric (att+pos): Difficulty does not stem only from long reasoning chains.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_exo2hop2.png" alt="2-hop exo-centric failure case 2">
+        <img src="static/figures/qual_exo2hop2.png" alt="2-hop exo-centric failure case 2">
         <p class="slide-caption">2-Hop Exo-centric (att+rel): Single-step errors lead to incorrect final answers.</p>
       </div>
       <div class="gallery-slide">
-        <img src="assets/figures/qual_exo2hop3.png" alt="2-hop exo-centric failure case 3">
+        <img src="static/figures/qual_exo2hop3.png" alt="2-hop exo-centric failure case 3">
         <p class="slide-caption">2-Hop Exo-centric (pos+rel): Compositional evaluation precisely diagnoses reasoning breakdowns.</p>
       </div>
 
@@ -982,7 +982,7 @@
 </footer>
 
 <!-- Scripts -->
-<script src="question-toggle.js"></script>
+<script src="static/question-toggle.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     initGallery('qual-gallery');
