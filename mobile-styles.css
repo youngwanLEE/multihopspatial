@@ -1,0 +1,55 @@
+/* ===== Mobile & Responsive Styles ===== */
+
+@media (max-width: 992px) {
+  .paper-title { font-size: 1.8rem; }
+  .section-title { font-size: 1.5rem; }
+  .metric-cards { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+  .key-findings { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .header-section { padding: 50px 0 40px; }
+  .paper-title { font-size: 1.5rem; }
+  .paper-venue { font-size: 0.95rem; }
+  .author-line { font-size: 0.92rem; }
+  .institution-logos { gap: 16px; flex-wrap: wrap; }
+  .institution-logo { width: 100px; max-height: 30px; }
+  .header-links { flex-direction: column; align-items: center; }
+  .header-links a { width: 80%; justify-content: center; }
+
+  section { padding: 40px 0; }
+  .section-title { font-size: 1.35rem; }
+
+  .tldr-box { padding: 20px; }
+  .tldr-question { font-size: 1.1rem; }
+
+  .custom-nav-pills { gap: 6px; }
+  .custom-nav-pills .nav-link { font-size: 0.78rem; padding: 6px 12px; }
+
+  .question-header { padding: 14px 16px; gap: 12px; }
+  .question-number { width: 30px; height: 30px; font-size: 0.8rem; }
+  .question-title { font-size: 0.92rem; }
+  .question-content { padding: 0 16px 16px; }
+
+  .stat-cards { grid-template-columns: repeat(2, 1fr); }
+  .metric-cards { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+
+  .data-table { font-size: 0.72rem; }
+  .data-table th, .data-table td { padding: 6px 8px; }
+
+  .gallery-wrapper { padding: 16px; }
+
+  .citation-box { padding: 16px; }
+  .citation-box pre { font-size: 0.75rem; }
+  .copy-btn { position: relative; top: auto; right: auto; margin-bottom: 12px; }
+}
+
+@media (max-width: 480px) {
+  .container, .container-narrow { padding: 0 16px; }
+  .paper-title { font-size: 1.3rem; }
+  .stat-cards { grid-template-columns: 1fr; }
+  .institution-logos { gap: 10px; }
+  .institution-logo { width: 80px; max-height: 24px; }
+}

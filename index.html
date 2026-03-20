@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark</title>
+  <meta name="description" content="MultihopSpatial: A comprehensive benchmark for multi-hop compositional spatial reasoning in Vision-Language Models.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="mobile-styles.css">
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- 1. HEADER -->
+<!-- ============================================================ -->
+<header class="header-section" id="overview">
+  <div class="container">
+    <h1 class="paper-title"><span class="title-gradient">MultihopSpatial</span>: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Model</h1>
+
+    <div class="author-line">
+      <a class="author-link" href="https://youngwanlee.github.io/" target="_blank">Youngwan Lee<span class="author-equal">*</span></a><sup>1,2</sup>,
+      <a class="author-link" href="https://scholar.google.com/citations?user=KlXqU3IAAAAJ&hl=ko" target="_blank">Soojin Jang<span class="author-equal">*</span></a><sup>1</sup>,
+      <a class="author-link" href="https://ofzlo.github.io/" target="_blank">Yoorhim Cho</a><sup>1</sup>,
+      <a class="author-link" href="https://nomis911.github.io/" target="_blank">Seunghwan Lee</a><sup>3</sup>,
+      <a class="author-link" href="https://yongjulee-etri.github.io/" target="_blank">Yong-Ju Lee</a><sup>1</sup>,
+      <a class="author-link" href="http://www.sungjuhwang.com/" target="_blank">Sung Ju Hwang</a><sup>2,4</sup>
+    </div>
+    <p style="font-size: 0.82rem; color: var(--text-color); margin-bottom: 12px;">* Equal contribution</p>
+
+
+    <div class="institution-logos">
+      <div class="institution-logo-wrapper">
+        <img src="assets/logos/etri_logo.png" alt="ETRI" class="institution-logo" style="margin-top: 18px;">
+        <sup>1</sup>
+      </div>
+      <div class="institution-logo-wrapper">
+        <img src="assets/logos/kaist_logo.png" alt="KAIST" class="institution-logo" style="margin-top: 18px;">
+        <sup style="left: -1px;">2</sup>
+      </div>
+      <div class="institution-logo-wrapper">
+        <img src="assets/logos/skk_logo.png" alt="Sungkyunkwan University" class="institution-logo">
+        <sup>3</sup>
+      </div>
+      <div class="institution-logo-wrapper">
+        <img src="assets/logos/deepauto_ai_ci.png" alt="DeepAuto" class="institution-logo" style="height: 42px;">
+        <sup>4</sup>
+      </div>
+    </div>
+
+    <div class="header-links">
+      <a href="https://arxiv.org/abs/2603.18892" class="btn-outline-custom" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf"></i> Paper</a>
+      <a href="#" class="btn-outline-custom" role="button" title="Coming soon" onclick="event.preventDefault();" aria-disabled="true"><i class="fab fa-github"></i> Code</a>
+      <a href="https://huggingface.co/datasets/etri-vilab/MultihopSpatial" class="btn-outline-custom" target="_blank" rel="noopener noreferrer"><i class="fas fa-database"></i> Dataset</a>
+      <a href="https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct" class="btn-outline-custom" target="_blank" rel="noopener noreferrer"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="HF" style="height: 16px; vertical-align: middle; margin-right: 4px;"> Model</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<!-- 2. TL;DR -->
+<!-- ============================================================ -->
+<section id="tldr">
+  <div class="container-narrow">
+    <h2 class="section-title">TL;DR</h2>
+
+    <div class="tldr-box">
+      <p class="tldr-question">Are Vision-Language Models robust at multi-hop compositional spatial reasoning?</p>
+      <p class="tldr-answer">
+        <strong>Not yet.</strong> In real-world scenarios, human instructions to embodied agents are far from simple &mdash; they require chaining multiple spatial inferences such as perspective-taking, attribute filtering, and relation comparison. However, existing benchmarks only test single-hop spatial relations (e.g., "Is X to the right of Y?"), which cannot capture this compositional complexity. We introduce <strong>MultihopSpatial</strong>, a benchmark featuring 1- to 3-hop compositional spatial queries paired with visual grounding evaluation. Our extensive evaluation of 37 VLMs reveals that multi-hop spatial reasoning remains a formidable challenge even for frontier models, and that models can often select the correct MCQ answer without genuinely locating the target &mdash; a critical blind spot we expose through our grounded metric, <strong>Acc@50IoU</strong>.
+      </p>
+    </div>
+
+    <div class="figure-container">
+      <img src="assets/figures/teaser_2.png" alt="Comparison of existing benchmarks and MultihopSpatial" style="max-width: 100%;">
+      <p class="figure-caption"><strong>Figure:</strong> (Left) Existing benchmarks rely on single-hop standard MCQs without spatial localization. MultihopSpatial requires multi-hop compositional reasoning with grounded evaluation. (Right) Frontier VLMs show high MCQ accuracy (solid bars) but plummet under Acc@50IoU (striped bars), revealing a severe spatial grounding blind spot.</p>
+    </div>
+
+    <div class="key-findings">
+      <div class="finding-card">
+        <h5><i class="fas fa-layer-group" style="margin-right:6px;"></i>Multi-hop Compositional Reasoning</h5>
+        <p>Real-world instructions require chaining multiple spatial inferences. MultihopSpatial introduces 1- to 3-hop queries composing attribute, position, and relation &mdash; going far beyond the single-step "left/right" questions of existing benchmarks.</p>
+      </div>
+      <div class="finding-card">
+        <h5><i class="fas fa-robot" style="margin-right:6px;"></i>Motivated by Embodied AI</h5>
+        <p>Instructions to embodied agents (e.g., humanoid robots, VLAs) are inherently complex. An agent must adopt a perspective, filter candidates, and compare relations before it can act &mdash; exactly the multi-hop reasoning our benchmark evaluates.</p>
+      </div>
+      <div class="finding-card">
+        <h5><i class="fas fa-crosshairs" style="margin-right:6px;"></i>Grounded Evaluation</h5>
+        <p>Embodied agents need not only correct answers but also precise visual grounding. We propose Acc@50IoU, which requires both a correct MCQ answer <em>and</em> an accurate bounding box, exposing models that guess without truly locating the target.</p>
+      </div>
+      <div class="finding-card">
+        <h5><i class="fas fa-dumbbell" style="margin-right:6px;"></i>Training Corpus for Spatial Intelligence</h5>
+        <p>MultihopSpatial-Train (6,791 samples) enables RL post-training that enhances intrinsic spatial reasoning across 5 benchmarks and translates to improved downstream manipulation performance in VLA tasks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 3. RESEARCH MOTIVATION -->
+<!-- ============================================================ -->
+<section id="motivation">
+  <div class="container-narrow">
+    <h2 class="section-title">Research Motivation</h2>
+    <p class="section-subtitle">Why multi-hop spatial reasoning matters for embodied AI</p>
+
+    <div class="figure-container">
+      <img src="assets/figures/teaser_1.png" alt="Multi-hop spatial reasoning for embodied agents" style="max-width: 100%;">
+      <p class="figure-caption"><strong>Figure:</strong> A multi-hop spatial reasoning example for an embodied agent in a real-world scenario.</p>
+    </div>
+
+    <p>The development of embodied agents &mdash; particularly Vision-Language-Action (VLA) models &mdash; fundamentally relies on VLMs for spatial reasoning to interact with the physical world. In complex real-world environments, an instruction like <em>"Could you move the round cup on my right &mdash; the one furthest away?"</em> requires an agent to adopt an ego-centric perspective, isolate the target position, filter by attributes, and compare spatial relations.</p>
+
+    <p>This internal reasoning mirrors a diagnostic <strong>multi-hop multiple-choice question</strong> coupled with <strong>precise bounding box prediction</strong>. An agent can only successfully navigate and manipulate an object if it accurately answers the query and visually grounds the target. However, existing spatial reasoning benchmarks focus almost exclusively on single-hop queries (e.g., "Is X to the right of Y?"), failing to capture the compositional, multi-step reasoning essential for real-world embodied scenarios.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 4. MULTIHOPSPATIAL (DATASET) -->
+<!-- ============================================================ -->
+<section id="dataset">
+  <div class="container">
+    <h2 class="section-title">MultihopSpatial</h2>
+    <p class="section-subtitle">A comprehensive benchmark for multi-hop compositional spatial reasoning with visual grounding</p>
+
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-number">4,500</div>
+        <div class="stat-label">Benchmark QA Pairs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">6,791</div>
+        <div class="stat-label">Training Samples</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">3,563</div>
+        <div class="stat-label">Curated Images</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">1&ndash;3</div>
+        <div class="stat-label">Reasoning Hops</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">90%</div>
+        <div class="stat-label">Inter-Rater Agreement (Krippendorff's &alpha;)</div>
+      </div>
+    </div>
+
+    <p><strong>MultihopSpatial</strong> is a 4,500-sample benchmark of manually annotated VQA pairs focusing on multi-hop, compositional spatial queries common in real-world scenarios. Each example provides ground-truth bounding boxes to jointly evaluate reasoning and spatial localization, which is crucial for embodied/VLA settings (e.g., grasping and action). This grounded design improves interpretability and eliminates the evaluation blind spot of random guessing.</p>
+
+    <p>We curate 3,563 spatially complex images from <a href="https://cocodataset.org" target="_blank">COCO</a> and <a href="https://github.com/facebookresearch/paco" target="_blank">PACO-Ego4D</a>, ensuring diverse coverage of everyday indoor/outdoor scenes and ego/exo perspectives. Upon these images, we construct 4,500 MCQs, perfectly balanced across 1- to 3-hop reasoning levels (1,500 per hop) and viewpoints (750 ego-centric and 750 exo-centric per hop).</p>
+
+    <p>To eliminate the reliability concerns and hallucinations inherent in AI-generated data, all QA pairs and bounding boxes were strictly annotated by ten trained human experts. Each sample underwent a rigorous multi-stage verification with three rounds of independent cross-checking, achieving high inter-annotator agreement (Krippendorff's &alpha; = 0.90). Furthermore, we introduce <strong>MultihopSpatial-Train</strong>, an auxiliary large-scale corpus of 6,791 grounded VQA samples designed to support post-training of VLMs for spatial intelligence.</p>
+
+    <div class="figure-container">
+      <img src="assets/figures/hop_statistic.png" alt="Compositional structure and category definitions" style="max-width: 100%;">
+      <p class="figure-caption"><strong>Figure:</strong> Compositional structure and category definitions in MultihopSpatial.</p>
+    </div>
+
+    <h3 style="margin-top: 32px;">Spatial Reasoning Categories</h3>
+    <p>We define three fundamental spatial reasoning categories: <strong>Attribute (att)</strong>, <strong>Position (pos)</strong>, and <strong>Relation (rel)</strong>. Our benchmark systematically composes these categories into multi-hop questions (e.g., 2- and 3-hop) that demand sequential intermediate inferences &mdash; identifying candidates, comparing relations, and resolving ambiguities. By increasing the hop count, we represent longer reasoning chains and escalating difficulty, enabling fine-grained diagnosis of model performance across different levels of reasoning complexity.</p>
+
+    <div class="highlight-box">
+      <p><strong>1-Hop:</strong> Single-step questions targeting one spatial category (pos or rel). We exclude att as a standalone category since attributes are primarily perceptual unless composed with spatial metrics. While 1-hop spatial reasoning has been explored in prior works, we deliberately include it as a controlled baseline for depth-wise comparisons against multi-hop compositions.</p>
+      <p><strong>2-Hop:</strong> Questions combining two categories (att+pos, att+rel, or pos+rel). These queries follow a two-stage structure: (i) restricting the candidate set using one category, and (ii) identifying the target by applying the other. Both constraints must be jointly satisfied, regardless of the specific inference order.</p>
+      <p style="margin-bottom:0;"><strong>3-Hop:</strong> Questions incorporating all three categories (att+pos+rel) in a single query. An att cue narrows candidates, after which the model reasons over pos and rel to identify the target (e.g., selecting the rightmost object that is farthest/closest). This structure mirrors how humans refer to objects in cluttered scenes, testing the disambiguation needed for embodied task execution.</p>
+    </div>
+
+    <div class="figure-container">
+      <img src="assets/figures/hop_examples.png" alt="Example MultihopSpatial questions" style="max-width: 100%;">
+      <p class="figure-caption"><strong>Figure:</strong> Example MultihopSpatial questions for 2-hop and 3-hop reasoning under ego-centric (top) and exo-centric (bottom) views.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 5. BENCHMARK RESULT -->
+<!-- ============================================================ -->
+<section id="results">
+  <div class="container">
+    <h2 class="section-title">Benchmark Results</h2>
+    <p class="section-subtitle">Evaluating 37 VLMs across 5 categories on MultihopSpatial</p>
+
+    <h3>Evaluation Metrics</h3>
+    <div class="metric-cards">
+      <div class="metric-card">
+        <h5>MCQ Accuracy</h5>
+        <p>Percentage of correct multiple-choice predictions. Standard but does not verify spatial localization.</p>
+      </div>
+      <div class="metric-card">
+        <h5>Acc@50IoU</h5>
+        <p>Our primary grounded metric. Correct only if the answer matches <em>and</em> predicted bounding box has IoU &ge; 0.5 with ground truth.</p>
+      </div>
+      <div class="metric-card">
+        <h5>Avg. IoU</h5>
+        <p>Computed over MCQ-correct samples only, isolating grounding capability from reasoning errors.</p>
+      </div>
+    </div>
+
+    <h3>Main Results</h3>
+    <div class="highlight-box">
+      <p><strong>Overall Performance:</strong> Gemini-3-Pro achieves the highest MCQ accuracy (64.7%) and Acc@50IoU (40.6%), while Qwen3-VL-32B-Thinking leads the open-weight category. Top performance in answer selection does not guarantee precise localization.</p>
+      <p><strong>Metric-dependent Rankings:</strong> Claude-Opus-4.5 drops from 7th (MCQ) to 29th (Acc@50IoU), while the smaller Qwen3-VL-4B rises from 25th to 10th due to robust grounding &mdash; proving MCQ alone is misleading.</p>
+      <p style="margin-bottom:0;"><strong>Benchmark Difficulty:</strong> The best model peaks at just 40.6% Acc@50IoU. Under 3-hop ego-centric conditions, only 3 of 37 models exceed the 25% random MCQ baseline. GPT-5.2-Thinking achieves just 8.5% and Claude-Sonnet-4.5-Thinking just 1.9%.</p>
+    </div>
+
+    <!-- MAIN TABLE -->
+    <div class="table-wrapper" style="margin-top: 28px;">
+      <table class="data-table" id="main-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="min-width:200px;">Model</th>
+            <th colspan="3">Overall</th>
+            <th colspan="2">3Hop-Ego</th>
+            <th colspan="2">3Hop-Exo</th>
+            <th colspan="2">2Hop-Ego</th>
+            <th colspan="2">2Hop-Exo</th>
+            <th colspan="2">1Hop-Ego</th>
+            <th colspan="2">1Hop-Exo</th>
+          </tr>
+          <tr>
+            <th>Acc.</th><th>Acc@50</th><th>IoU</th>
+            <th>Acc.</th><th>Acc@50</th>
+            <th>Acc.</th><th>Acc@50</th>
+            <th>Acc.</th><th>Acc@50</th>
+            <th>Acc.</th><th>Acc@50</th>
+            <th>Acc.</th><th>Acc@50</th>
+            <th>Acc.</th><th>Acc@50</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Proprietary Instant -->
+          <tr class="group-header"><td colspan="16"><em>Proprietary Models &mdash; Instant</em></td></tr>
+          <tr>
+            <td>Claude-Opus-4.5</td>
+            <td class="best-cell">45.1</td><td class="best-cell">3.2</td><td class="best-cell">13.3</td>
+            <td class="best-cell">25.7</td><td class="best-cell">2.0</td>
+            <td class="best-cell">48.5</td><td>3.6</td>
+            <td class="best-cell">33.7</td><td class="best-cell">2.0</td>
+            <td class="best-cell">58.1</td><td>4.8</td>
+            <td class="best-cell">43.2</td><td class="best-cell">3.5</td>
+            <td class="best-cell">61.1</td><td class="best-cell">3.1</td>
+          </tr>
+          <tr>
+            <td>Claude-Sonnet-4.5</td>
+            <td>20.9</td><td>0.5</td><td>4.2</td>
+            <td>6.4</td><td>0.4</td>
+            <td>18.5</td><td>0.9</td>
+            <td>12.3</td><td>0.0</td>
+            <td>34.7</td><td>1.6</td>
+            <td>13.5</td><td>0.0</td>
+            <td>40.0</td><td>0.1</td>
+          </tr>
+          <tr>
+            <td>GPT-5.2</td>
+            <td>19.3</td><td>2.0</td><td>11.8</td>
+            <td>5.3</td><td>0.7</td>
+            <td>18.0</td><td class="best-cell">4.9</td>
+            <td>10.8</td><td>0.1</td>
+            <td>30.4</td><td class="best-cell">5.9</td>
+            <td>8.1</td><td>0.0</td>
+            <td>43.3</td><td>0.4</td>
+          </tr>
+
+          <!-- Open-weight Instant -->
+          <tr class="group-header"><td colspan="16"><em>Open-weight Models &mdash; Instant</em></td></tr>
+          <tr>
+            <td>GLM-4.6V</td>
+            <td class="best-cell">43.2</td><td class="best-cell">35.2</td><td>69.5</td>
+            <td>15.9</td><td class="best-cell">12.3</td>
+            <td class="best-cell">46.7</td><td class="best-cell">39.3</td>
+            <td>22.7</td><td>18.4</td>
+            <td class="best-cell">61.6</td><td class="best-cell">53.2</td>
+            <td class="best-cell">32.4</td><td class="best-cell">24.3</td>
+            <td class="best-cell">80.1</td><td>63.7</td>
+          </tr>
+          <tr>
+            <td>Molmo2-8B</td>
+            <td>41.8</td><td>0.3</td><td>8.8</td>
+            <td>15.9</td><td>0.3</td>
+            <td>44.4</td><td>0.4</td>
+            <td>21.6</td><td>0.3</td>
+            <td>60.4</td><td>0.1</td>
+            <td class="best-cell">32.4</td><td>0.4</td>
+            <td>76.4</td><td>0.3</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-235B</td>
+            <td>41.3</td><td>34.8</td><td class="best-cell">71.1</td>
+            <td>14.8</td><td class="best-cell">12.3</td>
+            <td>42.9</td><td>37.6</td>
+            <td>21.9</td><td class="best-cell">18.5</td>
+            <td>58.5</td><td>52.7</td>
+            <td>30.7</td><td>23.5</td>
+            <td>79.2</td><td class="best-cell">64.4</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-32B</td>
+            <td>40.9</td><td>33.4</td><td>69.6</td>
+            <td>13.9</td><td>9.7</td>
+            <td>43.9</td><td>36.4</td>
+            <td>21.9</td><td>17.2</td>
+            <td>59.2</td><td>53.1</td>
+            <td>30.4</td><td>22.3</td>
+            <td>76.4</td><td>61.6</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-38B</td>
+            <td>40.8</td><td>9.7</td><td>28.7</td>
+            <td>17.5</td><td>3.2</td>
+            <td>44.5</td><td>12.3</td>
+            <td class="best-cell">24.3</td><td>4.5</td>
+            <td>56.8</td><td>24.5</td>
+            <td>31.9</td><td>3.3</td>
+            <td>69.6</td><td>10.4</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-14B</td>
+            <td>39.7</td><td>7.9</td><td>26.2</td>
+            <td>17.1</td><td>2.5</td>
+            <td>44.5</td><td>10.1</td>
+            <td>22.0</td><td>2.8</td>
+            <td>56.1</td><td>14.4</td>
+            <td>30.4</td><td>3.3</td>
+            <td>68.0</td><td>14.0</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-4B</td>
+            <td>39.7</td><td>10.3</td><td>30.0</td>
+            <td>15.9</td><td>3.1</td>
+            <td>45.2</td><td>13.5</td>
+            <td>23.9</td><td>4.5</td>
+            <td>54.9</td><td>18.7</td>
+            <td>31.9</td><td>3.6</td>
+            <td>66.3</td><td>18.4</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-8B</td>
+            <td>38.3</td><td>9.4</td><td>30.0</td>
+            <td>14.7</td><td>2.9</td>
+            <td>41.1</td><td>10.7</td>
+            <td>23.3</td><td>4.0</td>
+            <td>50.1</td><td>17.2</td>
+            <td>30.5</td><td>4.5</td>
+            <td>70.0</td><td>17.3</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-8B</td>
+            <td>38.0</td><td>31.3</td><td>69.5</td>
+            <td>12.3</td><td>8.8</td>
+            <td>42.1</td><td>36.1</td>
+            <td>18.8</td><td>15.2</td>
+            <td>55.3</td><td>49.1</td>
+            <td>26.7</td><td>20.8</td>
+            <td>72.8</td><td>58.0</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-4B</td>
+            <td>37.8</td><td>31.0</td><td>69.9</td>
+            <td>15.5</td><td>10.9</td>
+            <td>40.1</td><td>33.7</td>
+            <td>20.9</td><td>16.0</td>
+            <td>53.5</td><td>46.9</td>
+            <td>26.7</td><td>21.2</td>
+            <td>70.3</td><td>57.2</td>
+          </tr>
+          <tr>
+            <td>Gemma-3-IT-27B</td>
+            <td>33.1</td><td>0.4</td><td>5.4</td>
+            <td>18.1</td><td>0.1</td>
+            <td>30.8</td><td>0.5</td>
+            <td>22.0</td><td>0.1</td>
+            <td>45.7</td><td>1.1</td>
+            <td>28.1</td><td>0.3</td>
+            <td>53.9</td><td>0.3</td>
+          </tr>
+          <tr>
+            <td>Gemma-3-IT-12B</td>
+            <td>29.8</td><td>0.4</td><td>5.9</td>
+            <td>16.9</td><td>0.3</td>
+            <td>31.6</td><td>0.5</td>
+            <td>22.1</td><td>0.4</td>
+            <td>40.8</td><td>0.5</td>
+            <td>22.9</td><td>0.1</td>
+            <td>44.5</td><td>0.5</td>
+          </tr>
+          <tr>
+            <td>Gemma-3-IT-4B</td>
+            <td>28.4</td><td>0.2</td><td>3.0</td>
+            <td class="best-cell">22.1</td><td>0.0</td>
+            <td>27.2</td><td>0.3</td>
+            <td>22.5</td><td>0.1</td>
+            <td>36.8</td><td>0.3</td>
+            <td>27.1</td><td>0.3</td>
+            <td>34.7</td><td>0.1</td>
+          </tr>
+
+          <!-- Proprietary Reasoning -->
+          <tr class="group-header"><td colspan="16"><em>Proprietary Models &mdash; Reasoning</em></td></tr>
+          <tr>
+            <td>Gemini-3-Pro*</td>
+            <td class="best-cell">64.7</td><td class="best-cell">40.6</td><td>55.0</td>
+            <td class="best-cell">39.7</td><td class="best-cell">18.8</td>
+            <td class="best-cell">71.1</td><td>45.3</td>
+            <td>36.8</td><td>20.5</td>
+            <td class="best-cell">81.2</td><td>55.5</td>
+            <td class="best-cell">71.1</td><td class="best-cell">41.1</td>
+            <td class="best-cell">88.4</td><td class="best-cell">62.3</td>
+          </tr>
+          <tr>
+            <td>GPT-5.2-Thinking</td>
+            <td>57.9</td><td>11.5</td><td>29.0</td>
+            <td>36.1</td><td>8.5</td>
+            <td>55.7</td><td>10.4</td>
+            <td class="best-cell">49.7</td><td>7.6</td>
+            <td>63.6</td><td>18.0</td>
+            <td>65.6</td><td>12.5</td>
+            <td>76.4</td><td>11.7</td>
+          </tr>
+          <tr>
+            <td>Gemini-3-Flash*</td>
+            <td>57.2</td><td>40.2</td><td class="best-cell">61.2</td>
+            <td>6.9</td><td>4.3</td>
+            <td>61.2</td><td class="best-cell">46.9</td>
+            <td>42.3</td><td class="best-cell">25.3</td>
+            <td>80.0</td><td class="best-cell">63.7</td>
+            <td>66.0</td><td>38.9</td>
+            <td>86.8</td><td>62.1</td>
+          </tr>
+          <tr>
+            <td>Claude-Opus-4.5-Thinking</td>
+            <td>47.0</td><td>4.7</td><td>16.7</td>
+            <td>25.5</td><td>3.5</td>
+            <td>49.7</td><td>4.7</td>
+            <td>35.2</td><td>3.1</td>
+            <td>60.0</td><td>8.8</td>
+            <td>45.1</td><td>5.2</td>
+            <td>66.5</td><td>2.9</td>
+          </tr>
+          <tr>
+            <td>Claude-Sonnet-4.5-Thinking</td>
+            <td>32.2</td><td>4.3</td><td>19.2</td>
+            <td>14.7</td><td>1.9</td>
+            <td>29.9</td><td>3.6</td>
+            <td>22.1</td><td>2.3</td>
+            <td>45.7</td><td>8.1</td>
+            <td>31.3</td><td>3.9</td>
+            <td>49.3</td><td>6.1</td>
+          </tr>
+
+          <!-- Open-weight Reasoning -->
+          <tr class="group-header"><td colspan="16"><em>Open-weight Models &mdash; Reasoning</em></td></tr>
+          <tr>
+            <td>Qwen3-VL-32B-Thinking</td>
+            <td class="best-cell">46.8</td><td class="best-cell">37.4</td><td>67.2</td>
+            <td>19.2</td><td class="best-cell">12.9</td>
+            <td class="best-cell">57.5</td><td class="best-cell">47.1</td>
+            <td>24.3</td><td>18.1</td>
+            <td class="best-cell">70.1</td><td class="best-cell">60.0</td>
+            <td>30.4</td><td>23.1</td>
+            <td class="best-cell">79.6</td><td class="best-cell">63.2</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-235B-Thinking</td>
+            <td>45.1</td><td>36.3</td><td>67.8</td>
+            <td>17.6</td><td>12.7</td>
+            <td>51.2</td><td>42.3</td>
+            <td class="best-cell">24.8</td><td class="best-cell">19.3</td>
+            <td>67.6</td><td>58.7</td>
+            <td>31.2</td><td>22.8</td>
+            <td>78.1</td><td>61.9</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-4B-Thinking</td>
+            <td>42.6</td><td>28.7</td><td>58.3</td>
+            <td>20.4</td><td>9.2</td>
+            <td>48.1</td><td>34.8</td>
+            <td>22.3</td><td>12.0</td>
+            <td>63.9</td><td>50.7</td>
+            <td>30.8</td><td>16.3</td>
+            <td>70.4</td><td>49.2</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-38B-Thinking</td>
+            <td>42.1</td><td>27.4</td><td>57.0</td>
+            <td>19.5</td><td>10.9</td>
+            <td>43.3</td><td>32.5</td>
+            <td>24.7</td><td>15.3</td>
+            <td>56.8</td><td>39.2</td>
+            <td class="best-cell">34.8</td><td>20.7</td>
+            <td>73.6</td><td>45.9</td>
+          </tr>
+          <tr>
+            <td>GLM-4.6V-Thinking</td>
+            <td>42.0</td><td>34.7</td><td class="best-cell">70.1</td>
+            <td>14.1</td><td>10.7</td>
+            <td>46.3</td><td>40.0</td>
+            <td>19.5</td><td>15.3</td>
+            <td>63.1</td><td>56.1</td>
+            <td>31.2</td><td class="best-cell">23.3</td>
+            <td>77.6</td><td>62.7</td>
+          </tr>
+          <tr>
+            <td>Qwen3-VL-8B-Thinking</td>
+            <td>41.7</td><td>29.5</td><td>60.1</td>
+            <td>18.5</td><td>9.2</td>
+            <td>47.9</td><td>36.4</td>
+            <td>21.3</td><td>11.9</td>
+            <td>63.3</td><td>51.6</td>
+            <td>28.5</td><td>16.5</td>
+            <td>70.5</td><td>51.2</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-8B-Thinking</td>
+            <td>40.6</td><td>5.2</td><td>22.1</td>
+            <td class="best-cell">20.5</td><td>1.3</td>
+            <td>39.9</td><td>6.7</td>
+            <td>24.1</td><td>1.9</td>
+            <td>57.3</td><td>10.4</td>
+            <td>30.9</td><td>3.5</td>
+            <td>70.5</td><td>7.6</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-4B-Thinking</td>
+            <td>40.6</td><td>4.7</td><td>21.4</td>
+            <td>18.3</td><td>1.2</td>
+            <td>41.2</td><td>4.8</td>
+            <td>24.4</td><td>1.7</td>
+            <td>58.5</td><td>9.6</td>
+            <td>32.8</td><td>1.5</td>
+            <td>68.1</td><td>9.3</td>
+          </tr>
+          <tr>
+            <td>InternVL-3.5-14B-Thinking</td>
+            <td>38.2</td><td>11.1</td><td>34.7</td>
+            <td>14.1</td><td>4.7</td>
+            <td>42.8</td><td>13.6</td>
+            <td>21.1</td><td>5.6</td>
+            <td>55.3</td><td>20.5</td>
+            <td>27.6</td><td>6.4</td>
+            <td>68.0</td><td>15.9</td>
+          </tr>
+
+          <!-- Spatial Reasoning Models -->
+          <tr class="group-header"><td colspan="16"><em>Specialized Spatial Reasoning Models</em></td></tr>
+          <tr>
+            <td>SenseNova-InternVL3-8B</td>
+            <td class="best-cell">42.3</td><td>17.3</td><td>38.8</td>
+            <td class="best-cell">20.4</td><td>9.1</td>
+            <td class="best-cell">45.2</td><td>19.7</td>
+            <td class="best-cell">25.2</td><td>9.2</td>
+            <td class="best-cell">55.5</td><td>27.2</td>
+            <td class="best-cell">34.5</td><td>11.2</td>
+            <td class="best-cell">73.2</td><td>27.2</td>
+          </tr>
+          <tr>
+            <td>Cosmos-Reason2-8B</td>
+            <td>37.8</td><td class="best-cell">27.9</td><td class="best-cell">61.4</td>
+            <td>15.2</td><td class="best-cell">10.5</td>
+            <td>40.7</td><td class="best-cell">31.9</td>
+            <td>19.5</td><td class="best-cell">13.5</td>
+            <td>54.5</td><td class="best-cell">43.5</td>
+            <td>26.5</td><td class="best-cell">17.1</td>
+            <td>70.1</td><td class="best-cell">51.1</td>
+          </tr>
+          <tr>
+            <td>VST-7B-RL</td>
+            <td>36.0</td><td>0.0</td><td>1.5</td>
+            <td>16.7</td><td>0.0</td>
+            <td>34.1</td><td>0.1</td>
+            <td>23.9</td><td>0.0</td>
+            <td>48.1</td><td>0.0</td>
+            <td>24.5</td><td>0.0</td>
+            <td>68.8</td><td>0.0</td>
+          </tr>
+          <tr>
+            <td>SpaceQwen3-VL-2B</td>
+            <td>33.6</td><td>10.1</td><td>31.5</td>
+            <td>18.5</td><td>4.0</td>
+            <td>32.5</td><td>9.9</td>
+            <td>22.8</td><td>4.0</td>
+            <td>47.2</td><td>22.9</td>
+            <td>26.1</td><td>4.4</td>
+            <td>54.3</td><td>15.2</td>
+          </tr>
+          <tr>
+            <td>SpaceOm</td>
+            <td>32.3</td><td>0.3</td><td>2.6</td>
+            <td>15.3</td><td>0.5</td>
+            <td>37.9</td><td>0.1</td>
+            <td>19.6</td><td>0.1</td>
+            <td>47.9</td><td>0.4</td>
+            <td>20.5</td><td>0.3</td>
+            <td>52.8</td><td>0.4</td>
+          </tr>
+          <tr>
+            <td>SpatialReasoner</td>
+            <td>31.7</td><td>8.7</td><td>29.9</td>
+            <td>18.0</td><td>6.8</td>
+            <td>34.0</td><td>10.3</td>
+            <td>19.6</td><td>4.3</td>
+            <td>46.0</td><td>13.7</td>
+            <td>21.3</td><td>5.7</td>
+            <td>51.5</td><td>11.2</td>
+          </tr>
+          <tr>
+            <td>SpaceThinker-3B</td>
+            <td>31.1</td><td>4.0</td><td>16.6</td>
+            <td>15.9</td><td>2.9</td>
+            <td>36.3</td><td>3.7</td>
+            <td>19.2</td><td>2.9</td>
+            <td>44.5</td><td>6.5</td>
+            <td>20.8</td><td>3.3</td>
+            <td>50.0</td><td>4.3</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-caption"><strong>Table 1:</strong> Benchmark results across different hop counts and Ego/Exo perspectives. <span style="background: var(--best-green); padding: 2px 6px; border-radius: 3px;">Green</span> cells indicate the best performance within each model group. *<a href="https://ai.google.dev/gemini-api/docs/thinking" target="_blank" style="color: #555;">Gemini-3-Pro &amp; -Flash</a> operate with thinking mode enabled by default and do not provide an option to fully disable it. We therefore classify them as reasoning models.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 6. IN-DEPTH ANALYSIS -->
+<!-- ============================================================ -->
+<section id="analysis">
+  <div class="container">
+    <h2 class="section-title">In-depth Analysis</h2>
+    <p class="section-subtitle">Eight key insights from evaluating 37 VLMs on MultihopSpatial</p>
+
+    <!-- Nav Pills -->
+    <div class="custom-nav-pills">
+      <a class="nav-link active" href="#a1">A1. Hop Degradation</a>
+      <a class="nav-link" href="#a2">A2. Ego vs. Exo</a>
+      <a class="nav-link" href="#a3">A3. Instant vs. Reasoning</a>
+      <a class="nav-link" href="#a4">A4. Open vs. Proprietary</a>
+      <a class="nav-link" href="#a5">A5. Generalist vs. Specialist</a>
+      <a class="nav-link" href="#a6">A6. Grounding Gap</a>
+      <a class="nav-link" href="#a7">A7. Scaling Limits</a>
+      <a class="nav-link" href="#a8">A8. Error Analysis</a>
+    </div>
+
+    <!-- A1 -->
+    <div class="research-question" id="a1">
+      <div class="question-header">
+        <div class="question-number">1</div>
+        <h3 class="question-title">Performance Degradation across Reasoning Hops</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>Evaluating the impact of reasoning complexity across all 37 models reveals a <strong>consistent performance degradation</strong> as the number of hops increases, confirming that compositional spatial reasoning remains a fundamental challenge for current VLMs. Both MCQ accuracy and Acc@50IoU exhibit steep declines from 1-hop to 3-hop.</p>
+        <p>Crucially, this degradation is <strong>exacerbated under ego-centric evaluation</strong>, which requires additional perspective transformation. The widening performance gap between ego-centric and exo-centric views at higher hops suggests that perspective-taking compounds with multi-step reasoning, creating a <strong>multiplicative rather than additive difficulty</strong>.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig1_hop_bar.png" alt="Average Performance by Hop Count">
+          <p class="figure-caption">Average performance by hop count. Performance degrades consistently as reasoning hops increase.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A2 -->
+    <div class="research-question" id="a2">
+      <div class="question-header">
+        <div class="question-number">2</div>
+        <h3 class="question-title">Ego vs. Exo: Perspective-Taking as a Compounding Bottleneck</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>Beyond a simple performance drop, ego-centric evaluation fundamentally alters capability visibility. Under exo-centric conditions, our Acc@50IoU metric clearly <strong>distinguishes grounding-capable models</strong> (e.g., Qwen3-VL) from those lacking native localization (e.g., InternVL-3.5) despite their similar MCQ accuracies.</p>
+        <p>Conversely, ego-centric evaluation acts as an <strong>evaluation blind spot</strong>: it suppresses even strong grounding models to a 20&ndash;25% floor, completely masking these capability gaps. This compression highlights the necessity of evaluating perspectives jointly and reinforces Acc@50IoU as an essential metric to expose disparities invisible to conventional MCQ evaluation.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig11_scatter.png" alt="Scatter plots across perspectives">
+          <p class="figure-caption">Model performance scatter plots. Ego-centric evaluation masks grounding differences visible in exo-centric conditions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A3 -->
+    <div class="research-question" id="a3">
+      <div class="question-header">
+        <div class="question-number">3</div>
+        <h3 class="question-title">Instant vs. Reasoning: Diminishing Returns under Multi-Hop Pressure</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>While reasoning models consistently outperform instant models, this <strong>advantage diminishes under multi-hop pressure</strong>. The initial MCQ gain of up to +8 pp at 1-hop narrows considerably by 3-hop.</p>
+        <p>Critically, even with extended thinking, reasoning models plummet to <strong>sub-20% MCQ accuracy and sub-10% Acc@50IoU</strong> on 3-hop ego-centric tasks. This convergence toward the performance floor reveals that inference-time reasoning (e.g., chain-of-thought) yields diminishing returns as compositional steps accumulate. MultihopSpatial thus exposes a capability ceiling that test-time compute alone cannot resolve.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig7b_4bars.png" alt="Reasoning vs. Instant Models">
+          <p class="figure-caption">Reasoning vs. Instant models. The reasoning advantage shrinks with increasing hop count.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A4 -->
+    <div class="research-question" id="a4">
+      <div class="question-header">
+        <div class="question-number">4</div>
+        <h3 class="question-title">Open-weight vs. Proprietary Models</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>While proprietary models hold a slight MCQ advantage in ego-centric tasks&mdash;indicating stronger perspective-taking&mdash;<strong>open-weight models consistently dominate in Acc@50IoU</strong>. This reversal stems from a distinct asymmetry in visual grounding capabilities.</p>
+        <p>Proprietary models exhibit high variance: while the Gemini-3 series demonstrates robust localization, others (e.g., GPT-5.2, Claude) lack native grounding, significantly dragging down the group average. Conversely, open-weight families (e.g., Qwen3-VL, GLM-4.6V) maintain <strong>consistently high grounding performance</strong>, forming a dense cluster at 60%+ in exo-centric Acc@50IoU.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig8_errorbar.png" alt="Open-weight vs. Proprietary models">
+          <p class="figure-caption">Open-weight vs. Proprietary models across hop count and viewpoint.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A5 -->
+    <div class="research-question" id="a5">
+      <div class="question-header">
+        <div class="question-number">5</div>
+        <h3 class="question-title">Generalist vs. Specialist Models</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>Comparing specialized spatial reasoning models (SRMs) against comparable general-purpose VLMs (&le;10B) reveals a <strong>counterintuitive trend: SRMs consistently underperform</strong> across all metrics and hop counts.</p>
+        <p>This shortfall primarily stems from the robust native grounding inherent in general models (e.g., Qwen3-VL), which most SRMs lack. These findings indicate that current SRMs, typically fine-tuned on single-step QA, <strong>fail to generalize to multi-hop scenarios</strong>, suggesting that general-purpose VLMs provide a stronger foundation for compositional spatial understanding.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig10_srm.png" alt="Spatial Reasoning Models vs. General Models">
+          <p class="figure-caption">Spatial Reasoning Models vs. General Models (&le;10B).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A6 -->
+    <div class="research-question" id="a6">
+      <div class="question-header">
+        <div class="question-number">6</div>
+        <h3 class="question-title">Grounding Gap: Grounded vs. Ungrounded Accuracy</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>A striking disconnect exists between answer selection and spatial localization: most models fall far below the y=x line, indicating that high MCQ accuracy does not entail accurate grounding. Across all 37 models, the <strong>average ungrounded ratio reaches 59%</strong>, meaning more than half of correctly answered questions lack proper spatial localization.</p>
+        <p>This ratio varies dramatically by category: proprietary instant models exhibit <strong>93% ungrounded accuracy</strong>, while open-weight reasoning models achieve the lowest at 43%. At the extreme, models such as Gemma-3-IT, Molmo2, and Claude-Sonnet-4.5 exceed <strong>98% ungrounded</strong>, effectively answering through shortcuts without any spatial understanding.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig4a_lucky_guess.png" alt="Grounded vs Ungrounded accuracy per model" style="max-width: 100%;">
+          <p class="figure-caption">Grounded (Acc@50IoU) vs. Ungrounded accuracy per model. Hatched regions indicate ungrounded responses.</p>
+        </div>
+        <div class="two-col" style="grid-template-columns: 3fr 2fr; align-items: end;">
+          <div class="figure-container">
+            <img src="assets/figures/fig3_grounding_gap.png" alt="Grounding Gap" style="width: 100%; height: auto;">
+            <p class="figure-caption">Grounding Gap: MCQ Acc. vs. Acc@50IoU.</p>
+          </div>
+          <div class="figure-container">
+            <img src="assets/figures/fig4b_lucky_cat.png" alt="Ungrounded Ratio by Category" style="width: 100%; height: auto;">
+            <p class="figure-caption">Ungrounded Ratio by Model Category.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A7 -->
+    <div class="research-question" id="a7">
+      <div class="question-header">
+        <div class="question-number">7</div>
+        <h3 class="question-title">The Limits of LLM Scaling in Spatial Reasoning</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>Analyzing model scale across three open-weight families reveals that <strong>scaling the language backbone alone yields limited gains</strong>. While MCQ accuracy shows modest, saturating improvements, Acc@50IoU largely plateaus (e.g., Qwen3-VL) or remains near zero (e.g., Gemma-3-IT).</p>
+        <p>A notable exception is InternVL-3.5 at 38B, which exhibits a <strong>sharp grounding jump from 5.2% to 27.4%</strong>. Crucially, this leap coincides with a significant upgrade in its vision encoder (from 300M to 6B), whereas models utilizing fixed, small vision encoders (e.g., Qwen3-VL&rsquo;s 400M) saturate early. This demonstrates that multi-hop spatial reasoning depends critically on <strong>scaling the capacity of visual spatial representations</strong>, not solely the language component.</p>
+        <div class="figure-container">
+          <img src="assets/figures/fig9_scale.png" alt="Effect of model scale">
+          <p class="figure-caption">Effect of model scale on MCQ Accuracy (top) and Acc@50IoU (bottom) across overall and per-hop settings.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- A8 -->
+    <div class="research-question" id="a8">
+      <div class="question-header">
+        <div class="question-number">8</div>
+        <h3 class="question-title">Error Analysis on Tag Compositions</h3>
+        <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="question-content">
+        <p>Analyzing error rates across spatial tag combinations reveals that while reasoning models consistently outperform instant models, <strong>multi-tag compositions remain a critical bottleneck</strong>. Specifically, the Position-Relation (P-R) combination incurs significantly higher errors than single-tag settings, highlighting the severe difficulty of jointly handling positional localization and relational comparison.</p>
+        <p>Even specialized spatial reasoning models, which achieve the lowest overall errors, exhibit non-trivial failures on these complex compositions. This underscores that <strong>true compositional spatial reasoning remains an unresolved challenge</strong> across the current VLM ecosystem.</p>
+        <div class="figure-container">
+          <img src="assets/figures/error_rate_radar_5cat.png" alt="Error rates by tag combination">
+          <p class="figure-caption">Average error rates (%) by tag combination across model categories. A, R, and P denote Attribute, Relation, and Position.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 7. MULTIHOPSPATIAL-TRAIN -->
+<!-- ============================================================ -->
+<section id="training">
+  <div class="container">
+    <h2 class="section-title">MultihopSpatial-Train: Utility as a Training Corpus</h2>
+    <p class="section-subtitle section-subtitle-nowrap">Reinforcement learning post-training enhances both spatial reasoning and downstream VLA performance</p>
+
+    <p>Beyond serving as a static evaluation benchmark, we investigate MultihopSpatial as a <strong>training corpus</strong>. We post-train Qwen3-VL-4B-Instruct via Group Relative Policy Optimization (GRPO) using a composite reward function that jointly evaluates format adherence, answer correctness, and spatial localization accuracy:</p>
+
+    <div class="equation-box">
+      <em>R</em> = <em>R</em><sub>format</sub> + &alpha; &middot; <em>R</em><sub>mcq</sub> + &beta; &middot; <em>R</em><sub>bbox</sub>
+    </div>
+
+    <div class="highlight-box">
+      <p><strong>Format Reward:</strong> Binary reward (1 if output follows expected parsing format, 0 otherwise).</p>
+      <p><strong>MCQ Reward:</strong> Discrete correctness signal (1 if predicted choice matches ground truth).</p>
+      <p style="margin-bottom:0;"><strong>BBox Reward:</strong> Continuous GIoU-based localization score normalized to [0, 1], providing dense geometric feedback.</p>
+    </div>
+
+    <h3 style="margin-top: 32px;">Spatial Reasoning Benchmarks</h3>
+    <p>The GRPO-trained model achieves substantial improvements on both the in-domain MultihopSpatial benchmark and <strong>five out-of-domain</strong> spatial reasoning benchmarks, demonstrating that spatial reasoning capabilities generalize beyond the training distribution.</p>
+
+    <!-- Table: RL Results -->
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="min-width:180px;">Model</th>
+            <th colspan="3">MultihopSpatial (In-domain)</th>
+            <th colspan="5">Out-of-Domain</th>
+          </tr>
+          <tr>
+            <th>Acc.</th><th>Acc@50IoU</th><th>avg. IoU</th>
+            <th>BLINK</th><th>3DSRBench</th><th>OmniSpatial</th><th>VSI-Bench</th><th>SpatialMQA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Qwen3-VL-4B-Instruct</td>
+            <td>37.8</td><td>31.0</td><td>69.9</td>
+            <td>82.5</td><td>56.1</td><td>42.7</td><td>62.8</td><td>39.6</td>
+          </tr>
+          <tr style="font-weight: 700;">
+            <td><strong>w/ MultihopSpatial</strong></td>
+            <td><strong>62.9</strong></td><td><strong>53.8</strong></td><td><strong>72.6</strong></td>
+            <td><strong>85.3</strong></td><td><strong>56.3</strong></td><td><strong>43.9</strong></td><td><strong>63.2</strong></td><td><strong>41.1</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-caption"><strong>Table 2:</strong> Impact of MultihopSpatial-Train on spatial reasoning across diverse benchmarks.</p>
+
+    <h3 style="margin-top: 32px;">VLM as Backbone for Vision-Language-Action</h3>
+    <p>When deployed as a VLM backbone using VLM4VLA, the MultihopSpatial-trained model <strong>consistently outperforms the baseline</strong>. On CALVIN, the average task completion score rises from 3.75 to 3.98, with the performance gap widening as the task chain lengthens (from +0.6% on Task-1 to +7.0% on Task-5). The model also achieves a +4.2% improvement on Libero (35.8% &rarr; 40.0%).</p>
+
+    <!-- Table: VLA Results -->
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="min-width:180px;">VLM backbone</th>
+            <th>Task-1</th><th>Task-2</th><th>Task-3</th><th>Task-4</th><th>Task-5</th>
+            <th>Calvin</th><th>Libero</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Qwen3-VL-4B-Instruct</td>
+            <td>92.4</td><td>81.8</td><td>74.1</td><td>66.8</td><td>59.9</td>
+            <td>3.75</td><td>35.8</td>
+          </tr>
+          <tr style="font-weight: 700;">
+            <td><strong>w/ MultihopSpatial-Train</strong></td>
+            <td><strong>93.0</strong></td><td><strong>85.4</strong></td><td><strong>79.3</strong></td><td><strong>73.2</strong></td><td><strong>66.9</strong></td>
+            <td><strong>3.98</strong></td><td><strong>40.0</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-caption"><strong>Table 3:</strong> Vision-Language-Action evaluation on Calvin ABC-D and Libero. Each task measures success rate (%). Calvin denotes the average number of successfully completed tasks per sequence.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 8. QUALITATIVE RESULTS -->
+<!-- ============================================================ -->
+<section id="qualitative">
+  <div class="container">
+    <h2 class="section-title">Qualitative Results</h2>
+    <p class="section-subtitle">Illustrative failure cases revealing cascading errors in multi-hop spatial reasoning</p>
+
+    <div class="figure-container">
+      <img src="assets/figures/failure_case.png" alt="Qualitative failure analysis" style="max-width: 100%;">
+      <p class="figure-caption"><strong>Figure:</strong> Qualitative failure analysis on a 3-hop ego-centric question. All three models recognized the position condition "in front of," but failed to incorporate it into their final predictions.</p>
+    </div>
+
+    <p>The query asks to identify the farthest square or rectangular object <em>in front of</em> the sitting person. However, all three models neglect the position condition, instead selecting the farthest rectangular object based solely on attribute and relation. Examining each model's rationale reveals that they explicitly acknowledge the "in front of" constraint during reasoning, yet consistently disregard it in the final answer &mdash; demonstrating a <strong>failure to maintain intermediate conditions throughout the chain</strong>. An error at any single hop inevitably propagates to an incorrect final prediction.</p>
+
+    <h3 style="margin-top: 40px;">Additional Qualitative Examples</h3>
+    <p>Browse through representative failure cases across 2-hop and 3-hop ego-centric and exo-centric questions:</p>
+
+    <!-- Gallery -->
+    <div class="gallery-wrapper" id="qual-gallery">
+      <div class="gallery-slide active">
+        <img src="assets/figures/qual_ego3hop1.png" alt="3-hop ego-centric failure case 1">
+        <p class="slide-caption">3-Hop Ego-centric: All three models fail to correctly identify the perspective.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_ego3hop2.png" alt="3-hop ego-centric failure case 2">
+        <p class="slide-caption">3-Hop Ego-centric: Models struggle with perspective-taking in complex scenes.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_exo3hop1.png" alt="3-hop exo-centric failure case 1">
+        <p class="slide-caption">3-Hop Exo-centric: Models fail to retain intermediate conditions throughout the reasoning process.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_exo3hop2.png" alt="3-hop exo-centric failure case 2">
+        <p class="slide-caption">3-Hop Exo-centric: Cascading failures from attribute and position conditions.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_ego2hop1.png" alt="2-hop ego-centric failure case 1">
+        <p class="slide-caption">2-Hop Ego-centric (att+pos): Shorter reasoning chains still exhibit distinct failure modes.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_ego2hop2.png" alt="2-hop ego-centric failure case 2">
+        <p class="slide-caption">2-Hop Ego-centric (att+rel): Models fail in different ways even on the same sample.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_ego2hop3.png" alt="2-hop ego-centric failure case 3">
+        <p class="slide-caption">2-Hop Ego-centric (pos+rel): Error in a single intermediate cue propagates to incorrect answer.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_exo2hop1.png" alt="2-hop exo-centric failure case 1">
+        <p class="slide-caption">2-Hop Exo-centric (att+pos): Difficulty does not stem only from long reasoning chains.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_exo2hop2.png" alt="2-hop exo-centric failure case 2">
+        <p class="slide-caption">2-Hop Exo-centric (att+rel): Single-step errors lead to incorrect final answers.</p>
+      </div>
+      <div class="gallery-slide">
+        <img src="assets/figures/qual_exo2hop3.png" alt="2-hop exo-centric failure case 3">
+        <p class="slide-caption">2-Hop Exo-centric (pos+rel): Compositional evaluation precisely diagnoses reasoning breakdowns.</p>
+      </div>
+
+      <div class="gallery-controls">
+        <button class="gallery-btn gallery-prev"><i class="fas fa-chevron-left"></i></button>
+        <span class="gallery-counter">1 / 10</span>
+        <button class="gallery-btn gallery-next"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 9. CITATION -->
+<!-- ============================================================ -->
+<section id="citation">
+  <div class="container container-citation">
+    <h2 class="section-title">Citation</h2>
+    <div class="citation-box">
+      <button class="copy-btn" onclick="copyCitation()"><i class="fas fa-copy"></i> Copy</button>
+      <pre><code id="bibtex-content">@article{lee2026multihopspatial,
+  title={MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Model},
+  author={Lee, Youngwan and Jang, Soojin and Cho, Yoorhim and Lee, Seunghwan and Lee, Yong-Ju and Hwang, Sung Ju},
+  journal={arXiv preprint arXiv:2603.18892},
+  year={2026},
+  url={https://arxiv.org/abs/2603.18892}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 10. FOOTER -->
+<!-- ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <p>This project page was developed with reference to the project <a href="https://davidfan.io/webssl/" target="_blank">Web-SSL</a> by David Fan et al. We sincerely appreciate the creators for their inspiring work.</p>
+    <p style="margin-top: 8px; font-size: 0.85rem; opacity: 0.7;">&copy; 2026 MultihopSpatial Authors</p>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="question-toggle.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initGallery('qual-gallery');
+  });
+</script>
+
+</body>
+</html>
