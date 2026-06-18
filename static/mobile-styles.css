@@ -1,5 +1,11 @@
 /* ===== Mobile & Responsive Styles ===== */
 
+@media (min-width: 992px) {
+  .paper-title { font-size: 2.8rem; }
+  .section-title { font-size: 2rem; }
+  body { font-size: 1.05rem; }
+}
+
 @media (max-width: 992px) {
   .paper-title { font-size: 1.8rem; }
   .section-title { font-size: 1.5rem; }
