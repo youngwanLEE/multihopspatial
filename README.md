@@ -1,4 +1,4 @@
-# MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Models
+# [ECCV 2026] MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Models
 
 <p align="center">
   <img src="static/figures/teaser_2.png" width="100%" alt="MultihopSpatial Benchmark Overview">
