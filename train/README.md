@@ -112,8 +112,18 @@ Defaults match the released checkpoints:
 | Generations per prompt | 4 |
 | Max prompt / completion | 1024 / 2048 tokens |
 | LoRA | r=64, alpha=64, dropout 0.05 |
-| Trainable | vision tower + merger + LoRA; LLM frozen |
+| Trainable | LoRA adapters on the language model only (252 modules) |
 | Precision | bf16, gradient checkpointing, DeepSpeed ZeRO-2 |
+
+The training script passes `--freeze_vision_tower False --freeze_merger False`
+along with a smaller `--vision_lr`, but those end up being no-ops: `visual` is in
+`lora_namespan_exclude`, so no adapters are attached there, and PEFT freezes
+every non-LoRA parameter. The saved `non_lora_state_dict` is consequently empty,
+and the merged checkpoint is the base model plus LLM LoRA deltas.
+
+This is kept as-is because it is what produced the released checkpoints —
+changing it would train a different model. If you want to actually tune the
+vision tower, drop `visual` from `lora_namespan_exclude`.
 
 The vision tower and merger use a 10x smaller learning rate than the LoRA
 parameters, which is what the `--vision_lr` / `merger_lr` defaults encode.
