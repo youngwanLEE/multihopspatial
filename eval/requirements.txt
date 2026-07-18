@@ -1,0 +1,20 @@
+# Exact versions this benchmark was verified against.
+# transformers backend needs: torch, transformers, accelerate, flash_attn (optional), qwen-vl-utils, pillow, tqdm, huggingface_hub
+# vllm backend additionally needs: vllm
+
+torch==2.8.0
+torchvision==0.23.0
+transformers==4.57.0
+accelerate==1.6.0
+huggingface_hub==0.36.2
+qwen-vl-utils==0.0.14
+pillow==12.1.1
+tqdm==4.67.3
+
+# vLLM backend only (benchmark_qwen_vllm.py)
+vllm==0.11.0
+
+# Optional but recommended for the transformers backend (faster, lower memory):
+# flash-attn==2.7.2.post1
+# Install separately after the above, since it needs --no-build-isolation:
+#   pip install flash-attn==2.7.2.post1 --no-build-isolation
