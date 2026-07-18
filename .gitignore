@@ -5,5 +5,12 @@ eval/data/
 eval/result/
 eval/results_*.json
 eval/*.log
+
+# train/ downloads the dataset here and writes checkpoints/logs - never commit
+train/data/
+train/output/
+train/*.log
+train/wandb/
+
 __pycache__/
 *.pyc

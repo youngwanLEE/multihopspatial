@@ -29,8 +29,8 @@ All 4,500 benchmark QA pairs and bounding boxes are **strictly annotated by ten 
 Evaluation code is in [`eval/`](eval/). Both scripts auto-download the test set (JSON + 6,493 images) from the [HF dataset](https://huggingface.co/datasets/etri-vilab/MultihopSpatial) and the model checkpoint from the [HF Hub](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct) on first run — no manual data setup needed.
 
 ```bash
-cd eval
 pip install -r requirements.txt
+cd eval
 
 # Fast path: vLLM batched inference (recommended)
 python benchmark_qwen_vllm.py --output results_qwen3vl_4b
@@ -80,23 +80,11 @@ Note: free-tier Gemini API keys are capped at a low requests-per-minute quota �
 
 ### Requirements
 
-Install via `pip install -r eval/requirements.txt`. Exact versions this was verified against:
+Install everything with `pip install -r requirements.txt`.
 
-| Library | Version | Needed by |
-|---|---|---|
-| torch | 2.8.0 | Qwen scripts |
-| torchvision | 0.23.0 | Qwen scripts |
-| transformers | 4.57.0 | Qwen scripts |
-| accelerate | 1.6.0 | Qwen scripts |
-| huggingface_hub | 0.36.2 | all scripts |
-| qwen-vl-utils | 0.0.14 | Qwen scripts |
-| pillow | 12.1.1 | all scripts |
-| tqdm | 4.67.3 | all scripts |
-| vllm | 0.11.0 | `benchmark_qwen_vllm.py` only |
-| flash-attn | 2.7.2.post1 (optional) | `benchmark_qwen.py`, faster/lower-memory transformers inference — install separately with `--no-build-isolation` after the rest |
-| anthropic | 0.85.0 | `benchmark_claude.py` only |
-| openai | 2.24.0 | `benchmark_gpt.py` only |
-| google-genai | 1.73.1 | `benchmark_gemini.py` only |
+This was verified against torch 2.8.0, torchvision 0.23.0, transformers 4.57.0, accelerate 1.6.0, huggingface_hub 0.36.2, qwen-vl-utils 0.0.14, pillow 12.1.1 and tqdm 4.67.3, on CUDA 12.8. The vLLM backend additionally needs vllm 0.11.0, and the commercial API scripts need the SDK for whichever provider you're using — anthropic 0.85.0, openai 2.24.0, or google-genai 1.73.1.
+
+flash-attn 2.7.2.post1 is optional but makes the transformers backend faster and lighter on memory. Install it last, after everything else, since it needs `--no-build-isolation`.
 
 Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**, plus a per-hop/per-view breakdown. Reproduced numbers on the full 4,500-sample test set, independently verified against the paper (4B/8B/32B numbers appear in the camera-ready version):
 
@@ -122,6 +110,29 @@ Given the test set has 4,500 samples, a handful of borderline flips easily expla
 
 Also note: the 8B/32B numbers above used the checkpoints' own `generation_config.json` sampling settings (temperature=0.7, unseeded) rather than `--greedy`, matching how they were originally evaluated — so slightly larger run-to-run variance is expected for those than for the greedy 4B numbers.
 
+
+## Training
+
+Training code is in [`train/`](train/) — GRPO post-training of Qwen3-VL on the
+MultihopSpatial train split (6,791 samples), the recipe behind the released
+checkpoints. Like the evaluation scripts, it auto-downloads the dataset and base
+model, so there's no manual data setup.
+
+```bash
+pip install -r train/requirements.txt
+cd train
+
+python prepare_data.py            # fetch + convert the train split (once)
+bash train_grpo_qwen3vl_4b.sh     # 8 GPUs, 10 epochs, lr 5e-5
+```
+
+GRPO optimizes `format + α·mcq + β·bbox + γ·truncation` (all coefficients default
+to 1.0), tuning the vision tower, merger, and LoRA adapters while the LLM stays
+frozen. Training ends by merging the adapters into a standalone checkpoint at
+`output/<run-name>/merged`, which you can hand straight to the eval scripts.
+
+See [`train/README.md`](train/README.md) for the full configuration, the reward
+breakdown, and options for other model sizes.
 
 ## Citation
 ```bibtex
