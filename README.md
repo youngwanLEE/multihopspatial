@@ -48,11 +48,13 @@ python benchmark_qwen_vllm.py --model_path /path/to/checkpoint --gpus 0,1,2,3,4,
 `--model_path` accepts any HF Hub repo id or local checkpoint path, so you can point it at any of our released model sizes (or your own checkpoint, or a local path):
 
 ```bash
-# 4B (available now)
+# 4B
 python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct
 
-# 8B / 32B (coming soon) - once published, evaluate the same way:
+# 8B
 python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-8B-Instruct
+
+# 32B (needs multi-GPU tensor parallelism)
 python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-32B-Instruct \
     --gpus 0,1,2,3,4,5,6,7 --max_model_len 32768
 ```
