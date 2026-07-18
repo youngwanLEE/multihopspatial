@@ -26,6 +26,13 @@ set -eo pipefail
 export PYTHONPATH=src:$PYTHONPATH
 export TOKENIZERS_PARALLELISM=false
 
+# GRPO generates variable-length rollouts, so allocation sizes swing from step to
+# step and the caching allocator fragments over a long run. Left alone that shows
+# up as a gradual, then sudden, slowdown - reserved memory climbing while step
+# time blows up an order of magnitude. expandable_segments lets the allocator
+# grow existing segments instead of hunting for contiguous blocks.
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
 # ---- Where things get downloaded ----
 #
 # Dataset (~1 GB: 6,791 samples + 6,493 images)
@@ -46,6 +53,12 @@ export TOKENIZERS_PARALLELISM=false
 # Outputs
 #   Checkpoints, the merged model, and logs all land in $OUTPUT_DIR (see below).
 #   Nothing is written outside $DATA_DIR, $OUTPUT_DIR, and the Hub cache.
+#
+# Resuming
+#   If $OUTPUT_DIR already holds checkpoint-* directories, training picks up from
+#   the most recent one automatically - so re-running this after an interruption
+#   continues rather than starting over. Only the last 2 checkpoints are kept.
+#   To start fresh instead, delete $OUTPUT_DIR or pass a new --output_dir.
 
 # ---- Defaults ----
 MODEL_SIZE="4b"   # 4b | 8b | 32b - selects the base model and batch size below
@@ -115,10 +128,7 @@ MODEL_SIZE="$(tr '[:upper:]' '[:lower:]' <<< "$MODEL_SIZE")"
 case "$MODEL_SIZE" in
     4b)  SIZE_MODEL_ID="Qwen/Qwen3-VL-4B-Instruct";  SIZE_BATCH=16 ;;
     8b)  SIZE_MODEL_ID="Qwen/Qwen3-VL-8B-Instruct";  SIZE_BATCH=16 ;;
-    32b) SIZE_MODEL_ID="Qwen/Qwen3-VL-32B-Instruct"; SIZE_BATCH=1
-         # Qwen3-VL-32B has a large vocab and long sequences; without this the
-         # allocator fragments and OOMs even when total free memory is fine.
-         export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ;;
+    32b) SIZE_MODEL_ID="Qwen/Qwen3-VL-32B-Instruct"; SIZE_BATCH=1 ;;
     *)   echo "Error: unknown --model '$MODEL_SIZE' (expected 4b, 8b or 32b)"; exit 1 ;;
 esac
 

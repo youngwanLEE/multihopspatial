@@ -10,6 +10,14 @@
   <a href="https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct"><b>Model</b></a>
 </p>
 
+> [!NOTE]
+> **Contents**
+> - [Overview](#overview) · [Key Features](#key-features)
+> - [Model Zoo](#model-zoo) — released 4B / 8B / 32B checkpoints
+> - [Evaluation](#evaluation) — [commercial APIs](#commercial-api-models-claude-gpt-gemini) · [results](#results) · [reproducibility](#a-note-on-reproducibility)
+> - [Training](#training) — GRPO post-training, one command
+> - [Requirements](#requirements) · [Citation](#citation)
+
 ## Overview
 
 **MultihopSpatial** is a benchmark designed to evaluate whether vision-language models (VLMs) demonstrate robustness in **multi-hop compositional spatial reasoning**. Unlike existing benchmarks that only assess single-step spatial relations, MultihopSpatial features queries with **1 to 3 reasoning hops** paired with **visual grounding evaluation**, exposing a critical blind spot: models achieving high multiple-choice accuracy often lack proper spatial localization.
@@ -23,6 +31,20 @@ All 4,500 benchmark QA pairs and bounding boxes are **strictly annotated by ten 
 - **Perspective-taking**: Includes both ego-centric and exo-centric viewpoints.
 - **Three Spatial Categories**: Attribute (ATT), Position (POS), and Relation (REL), composable into multi-hop questions.
 - **Training Data**: MultihopSpatial-Train (6,791 samples) supports post-training via reinforcement learning (e.g., GRPO).
+
+## Model Zoo
+
+GRPO post-trained on MultihopSpatial-Train. All three are drop-in replacements for
+their Qwen3-VL base model.
+
+| Model | Base | HF Hub |
+|---|---|---|
+| MultiHopSpatial-Qwen3-VL-4B-Instruct | Qwen3-VL-4B-Instruct | [etri-vilab/...-4B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct) |
+| MultiHopSpatial-Qwen3-VL-8B-Instruct | Qwen3-VL-8B-Instruct | [etri-vilab/...-8B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-8B-Instruct) |
+| MultiHopSpatial-Qwen3-VL-32B-Instruct | Qwen3-VL-32B-Instruct | [etri-vilab/...-32B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-32B-Instruct) |
+
+The benchmark itself lives at [etri-vilab/MultihopSpatial](https://huggingface.co/datasets/etri-vilab/MultihopSpatial)
+— 4,500 test samples and 6,791 training samples, images included.
 
 ## Evaluation
 
@@ -74,17 +96,16 @@ python benchmark_gpt.py --model gpt-5.2 --test_samples 5
 python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
 ```
 
-Never commit a file containing a real key, and don't pass one as a `--` flag (it would land in your shell history). Set it via `export` in your shell, a `.env` file loaded by your shell profile, or your CI secret store.
+> [!IMPORTANT]
+> Never commit a file containing a real API key, and don't pass one as a `--` flag —
+> it would land in your shell history. Set it via `export` in your shell, a `.env`
+> file loaded by your shell profile, or your CI secret store.
 
-Note: free-tier Gemini API keys are capped at a low requests-per-minute quota — pass `--concurrency 1` (or 2) if you hit `429` errors; this isn't a concern on a paid-tier key.
+> [!TIP]
+> Free-tier Gemini keys are capped at a low requests-per-minute quota. If you hit
+> `429` errors, pass `--concurrency 1` (or `2`). Not a concern on a paid-tier key.
 
-### Requirements
-
-Install everything with `pip install -r requirements.txt`.
-
-This was verified against torch 2.8.0, torchvision 0.23.0, transformers 4.57.0, accelerate 1.6.0, huggingface_hub 0.36.2, qwen-vl-utils 0.0.14, pillow 12.1.1 and tqdm 4.67.3, on CUDA 12.8. The vLLM backend additionally needs vllm 0.11.0, and the commercial API scripts need the SDK for whichever provider you're using — anthropic 0.85.0, openai 2.24.0, or google-genai 1.73.1.
-
-flash-attn 2.7.2.post1 is optional but makes the transformers backend faster and lighter on memory. Install it last, after everything else, since it needs `--no-build-isolation`.
+### Results
 
 Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**, plus a per-hop/per-view breakdown. Reproduced numbers on the full 4,500-sample test set, independently verified against the paper (4B/8B/32B numbers appear in the camera-ready version):
 
@@ -100,7 +121,17 @@ Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**
 
 ### A note on reproducibility
 
-Small run-to-run differences (usually well under 1 point) are expected and not a bug — even with `--greedy` decoding. Two independent vLLM runs against the same checkpoint and data above differed by ~0.2 points despite identical settings. This comes from GPU floating-point non-determinism, not randomness in the decoding strategy itself:
+> [!IMPORTANT]
+> Small run-to-run differences (usually well under 1 point) are expected and **not a
+> bug** — even with `--greedy` decoding. Two independent vLLM runs against the same
+> checkpoint and data above differed by ~0.2 points despite identical settings.
+
+<details>
+<summary><b>Why greedy decoding still varies between runs</b></summary>
+
+<br>
+
+It comes from GPU floating-point non-determinism, not randomness in the decoding strategy itself:
 
 - **Kernel-level non-determinism**: matmul/attention reductions on GPU don't have a fixed summation order by default, so the same computation can produce logits that differ in the last few bits between runs (kernel/algorithm selection, thread scheduling). Usually invisible, but when two candidate tokens have near-tied logits, that tiny jitter can flip which one "wins" under argmax.
 - **Batching effects (vLLM specifically)**: continuous batching means a request's numerical result can depend slightly on what other sequences happen to be batched alongside it — attention kernel tiling/padding differs by batch composition. The same prompt run twice isn't guaranteed byte-identical output.
@@ -109,6 +140,8 @@ Small run-to-run differences (usually well under 1 point) are expected and not a
 Given the test set has 4,500 samples, a handful of borderline flips easily explains the observed variance. If you need bit-exact reproducibility, you'd need `torch.use_deterministic_algorithms(True)`, a fixed batch size, and disabling FlashAttention's non-deterministic paths — at a real performance cost, and not something this benchmark's numbers depend on.
 
 Also note: the 8B/32B numbers above used the checkpoints' own `generation_config.json` sampling settings (temperature=0.7, unseeded) rather than `--greedy`, matching how they were originally evaluated — so slightly larger run-to-run variance is expected for those than for the greedy 4B numbers.
+
+</details>
 
 
 ## Training
@@ -129,12 +162,45 @@ trains (8 GPUs, 10 epochs, lr 5e-5), and merges the result into a standalone
 checkpoint. All three released sizes share the same recipe.
 
 GRPO optimizes `format + α·mcq + β·bbox + γ·truncation` (all coefficients default
-to 1.0), tuning the vision tower, merger, and LoRA adapters while the LLM stays
-frozen. Training ends by merging the adapters into a standalone checkpoint at
+to 1.0) over LoRA adapters on the language model, with the base weights frozen.
+Training ends by merging the adapters into a standalone checkpoint at
 `output/<run-name>/merged`, which you can hand straight to the eval scripts.
 
-See [`train/README.md`](train/README.md) for the full configuration, the reward
-breakdown, and options for other model sizes.
+> [!TIP]
+> See [`train/README.md`](train/README.md) for the full configuration, the reward
+> breakdown, how to resume an interrupted run, and where the dataset and base model
+> get cached.
+
+## Requirements
+
+Install everything with `pip install -r requirements.txt` (training additionally
+needs `pip install -r train/requirements.txt`).
+
+<details>
+<summary><b>Verified library versions</b></summary>
+
+<br>
+
+Evaluation was verified against torch 2.8.0, torchvision 0.23.0, transformers 4.57.0,
+accelerate 1.6.0, huggingface_hub 0.36.2, qwen-vl-utils 0.0.14, pillow 12.1.1 and
+tqdm 4.67.3, on CUDA 12.8.
+
+The vLLM backend additionally needs vllm 0.11.0. The commercial API scripts need the
+SDK for whichever provider you're using — anthropic 0.85.0, openai 2.24.0, or
+google-genai 1.73.1.
+
+Training adds trl 0.23.1, peft 0.16.0, deepspeed 0.18.6 and datasets 4.5.0, and was
+verified on 8x A100 80GB.
+
+flash-attn 2.7.2.post1 is optional but makes the transformers backend faster and
+lighter on memory. Install it last, after everything else, since it builds against
+the installed torch:
+
+```bash
+pip install flash-attn==2.7.2.post1 --no-build-isolation
+```
+
+</details>
 
 ## Citation
 ```bibtex
