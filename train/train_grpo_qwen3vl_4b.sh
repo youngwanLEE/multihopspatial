@@ -4,14 +4,15 @@
 # ============================================================
 # Reproduces the recipe behind etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct.
 #
-# Prerequisite: download and convert the training data once.
+# The dataset and base model are downloaded automatically on the first run,
+# so this is all you need:
 #
-#     python prepare_data.py
+#     bash train_grpo_qwen3vl_4b.sh
 #
 # Usage:
-#     bash train_grpo_qwen3vl_4b.sh
 #     bash train_grpo_qwen3vl_4b.sh --epochs 10 --lr 5e-5
 #     bash train_grpo_qwen3vl_4b.sh --gpus 0,1,2,3 --wandb
+#     bash train_grpo_qwen3vl_4b.sh --data_dir /path/to/dataset/cache
 #
 # Reward: format + alpha * mcq + beta * bbox + gamma * truncation
 # ============================================================
@@ -23,8 +24,9 @@ export TOKENIZERS_PARALLELISM=false
 
 # ---- Defaults ----
 MODEL_ID="Qwen/Qwen3-VL-4B-Instruct"
-DATA_PATH="data/multihopspatial/multihop_train_6791_grpo.json"
-IMAGE_FOLDER="data/multihopspatial/data/images"
+DATA_DIR="data/multihopspatial"
+DATA_PATH=""      # defaults to $DATA_DIR/multihop_train_6791_grpo.json
+IMAGE_FOLDER=""   # defaults to $DATA_DIR/data/images
 OUTPUT_DIR=""
 GPUS="0,1,2,3,4,5,6,7"
 
@@ -56,6 +58,7 @@ RUN_MERGE=1
 while [[ $# -gt 0 ]]; do
     case $1 in
         --model_id) MODEL_ID="$2"; shift 2 ;;
+        --data_dir) DATA_DIR="$2"; shift 2 ;;
         --data_path) DATA_PATH="$2"; shift 2 ;;
         --image_folder) IMAGE_FOLDER="$2"; shift 2 ;;
         --output_dir) OUTPUT_DIR="$2"; shift 2 ;;
@@ -78,6 +81,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ---- Derived configuration ----
+DATA_PATH="${DATA_PATH:-${DATA_DIR}/multihop_train_6791_grpo.json}"
+IMAGE_FOLDER="${IMAGE_FOLDER:-${DATA_DIR}/data/images}"
+
 NUM_DEVICES=$(awk -F',' '{print NF}' <<< "$GPUS")
 GRAD_ACCUM_STEPS=$((GLOBAL_BATCH_SIZE / (BATCH_PER_DEVICE * NUM_DEVICES)))
 
@@ -112,16 +118,20 @@ PY
 )
 fi
 
-# ---- Preflight ----
-if [[ ! -f "$DATA_PATH" ]]; then
-    echo "Error: training data not found at $DATA_PATH"
-    echo "Run 'python prepare_data.py' first."
-    exit 1
-fi
-if [[ ! -d "$IMAGE_FOLDER" ]]; then
-    echo "Error: image folder not found at $IMAGE_FOLDER"
-    echo "Run 'python prepare_data.py' first."
-    exit 1
+# ---- Preflight: fetch the dataset on first run ----
+if [[ ! -f "$DATA_PATH" || ! -d "$IMAGE_FOLDER" ]]; then
+    echo "Training data not found - downloading it now (~1 GB, one time only)."
+    echo "The Hub rate-limits large downloads, so this may pause and resume."
+    echo ""
+    python prepare_data.py --data_dir "$DATA_DIR" --output "$DATA_PATH"
+
+    if [[ ! -f "$DATA_PATH" || ! -d "$IMAGE_FOLDER" ]]; then
+        echo "Error: data preparation did not produce the expected files:"
+        echo "  $DATA_PATH"
+        echo "  $IMAGE_FOLDER"
+        exit 1
+    fi
+    echo ""
 fi
 
 echo "=========================================="

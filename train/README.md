@@ -19,23 +19,27 @@ Verified on 8x A100 80GB with CUDA 12.8.
 
 ```bash
 cd train
-
-# 1. Download the train split from the HF Hub and convert it to the training format
-python prepare_data.py
-
-# 2. Train (defaults: 8 GPUs, 10 epochs, lr 5e-5)
 bash train_grpo_qwen3vl_4b.sh
 ```
 
-`prepare_data.py` fetches the dataset (JSON + 6,493 images, ~1 GB) into
-`data/multihopspatial/` and writes the converted training JSON alongside it. The
-download is cached, so re-running is cheap. The base model
-(`Qwen/Qwen3-VL-4B-Instruct`) is fetched automatically on the first training run.
+That's the whole thing. On the first run it downloads the dataset (JSON + 6,493
+images, ~1 GB) and the base model (`Qwen/Qwen3-VL-4B-Instruct`), converts the
+data to the training format, trains for 10 epochs on 8 GPUs at lr 5e-5, and
+merges the LoRA adapters into a standalone checkpoint. Everything is cached, so
+later runs skip straight to training.
 
-That file count is enough to hit the Hub's rate limit (5,000 requests per 5
-minutes) on a free account. The script handles this: it keeps what it already
-downloaded, waits out the window, and resumes. If you see a rate-limit message,
-just let it run — no need to restart it.
+The dataset is enough files to hit the Hub's rate limit (5,000 requests per 5
+minutes) on a free account. That's handled: already-downloaded files are kept,
+and the download waits out the window and resumes. If you see a rate-limit
+message, just let it run — no need to restart anything.
+
+If you'd rather fetch the data as a separate step — to run it on a login node, or
+to check it before committing GPUs — `prepare_data.py` does exactly what the
+training script calls internally:
+
+```bash
+python prepare_data.py
+```
 
 Training writes to `output/<run-name>/` and, unless you pass `--no_merge`, folds
 the LoRA adapters back into the base model at `output/<run-name>/merged` — a
@@ -54,6 +58,7 @@ bash train_grpo_qwen3vl_4b.sh --gpus 0,1,2,3            # subset of GPUs
 bash train_grpo_qwen3vl_4b.sh --alpha 1.0 --beta 1.0    # reward coefficients
 bash train_grpo_qwen3vl_4b.sh --wandb                   # enable W&B logging
 bash train_grpo_qwen3vl_4b.sh --no_merge                # skip the LoRA merge
+bash train_grpo_qwen3vl_4b.sh --data_dir /shared/cache  # where the dataset lives
 bash train_grpo_qwen3vl_4b.sh --model_id Qwen/Qwen3-VL-8B-Instruct
 ```
 

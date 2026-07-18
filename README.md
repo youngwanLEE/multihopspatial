@@ -121,10 +121,12 @@ model, so there's no manual data setup.
 ```bash
 pip install -r train/requirements.txt
 cd train
-
-python prepare_data.py            # fetch + convert the train split (once)
-bash train_grpo_qwen3vl_4b.sh     # 8 GPUs, 10 epochs, lr 5e-5
+bash train_grpo_qwen3vl_4b.sh
 ```
+
+That single command downloads the dataset and base model, converts the data,
+trains (8 GPUs, 10 epochs, lr 5e-5), and merges the result into a standalone
+checkpoint.
 
 GRPO optimizes `format + α·mcq + β·bbox + γ·truncation` (all coefficients default
 to 1.0), tuning the vision tower, merger, and LoRA adapters while the LLM stays
