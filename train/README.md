@@ -19,14 +19,27 @@ Verified on 8x A100 80GB with CUDA 12.8.
 
 ```bash
 cd train
-bash train_grpo_qwen3vl_4b.sh
+bash train_grpo_qwen3vl_4b.sh     # or _8b / _32b
 ```
 
 That's the whole thing. On the first run it downloads the dataset (JSON + 6,493
-images, ~1 GB) and the base model (`Qwen/Qwen3-VL-4B-Instruct`), converts the
-data to the training format, trains for 10 epochs on 8 GPUs at lr 5e-5, and
-merges the LoRA adapters into a standalone checkpoint. Everything is cached, so
-later runs skip straight to training.
+images, ~1 GB) and the base model, converts the data to the training format,
+trains for 10 epochs on 8 GPUs at lr 5e-5, and merges the LoRA adapters into a
+standalone checkpoint. Everything is cached, so later runs skip straight to
+training.
+
+All three released model sizes share one recipe, so the per-size scripts are
+thin wrappers around `train_grpo.sh`:
+
+```bash
+bash train_grpo_qwen3vl_4b.sh     # = bash train_grpo.sh --model 4b
+bash train_grpo_qwen3vl_8b.sh     # = bash train_grpo.sh --model 8b
+bash train_grpo_qwen3vl_32b.sh    # = bash train_grpo.sh --model 32b
+```
+
+Only the base model and per-device batch size differ. 32B fits far less per GPU,
+so it uses batch 1 with 16 accumulation steps — the same global batch of 128 —
+and enables `expandable_segments` to avoid fragmentation OOMs.
 
 The dataset is enough files to hit the Hub's rate limit (5,000 requests per 5
 minutes) on a free account. That's handled: already-downloaded files are kept,
@@ -53,14 +66,18 @@ python benchmark_qwen_vllm.py --model_path ../train/output/<run-name>/merged
 ## Options
 
 ```bash
-bash train_grpo_qwen3vl_4b.sh --epochs 10 --lr 5e-5     # training length / LR
-bash train_grpo_qwen3vl_4b.sh --gpus 0,1,2,3            # subset of GPUs
-bash train_grpo_qwen3vl_4b.sh --alpha 1.0 --beta 1.0    # reward coefficients
-bash train_grpo_qwen3vl_4b.sh --wandb                   # enable W&B logging
-bash train_grpo_qwen3vl_4b.sh --no_merge                # skip the LoRA merge
-bash train_grpo_qwen3vl_4b.sh --data_dir /shared/cache  # where the dataset lives
-bash train_grpo_qwen3vl_4b.sh --model_id Qwen/Qwen3-VL-8B-Instruct
+bash train_grpo.sh --model 8b                # which released size to train
+bash train_grpo.sh --epochs 10 --lr 5e-5     # training length / LR
+bash train_grpo.sh --gpus 0,1,2,3            # subset of GPUs
+bash train_grpo.sh --alpha 1.0 --beta 1.0    # reward coefficients
+bash train_grpo.sh --wandb                   # enable W&B logging
+bash train_grpo.sh --no_merge                # skip the LoRA merge
+bash train_grpo.sh --data_dir /shared/cache  # where the dataset lives
+bash train_grpo.sh --model_id some/other-qwen3-vl   # any other base checkpoint
 ```
+
+The per-size wrappers accept all of these too, so
+`bash train_grpo_qwen3vl_8b.sh --epochs 3 --wandb` works as you'd expect.
 
 Gradient accumulation is derived from `--global_batch_size` (default 128),
 `--batch_per_device` (16) and the GPU count, so the effective batch size stays
@@ -89,9 +106,9 @@ Defaults match the released checkpoints:
 
 | | |
 |---|---|
-| Base model | `Qwen/Qwen3-VL-4B-Instruct` |
+| Base model | `Qwen/Qwen3-VL-{4B,8B,32B}-Instruct` |
 | Epochs / LR | 10 / 5e-5 (vision + merger: 5e-6) |
-| Batch | 8 GPUs x 16 prompts x 1 accum = 128 |
+| Batch | 8 GPUs, global 128 — 4B/8B: 16 x 1 accum, 32B: 1 x 16 accum |
 | Generations per prompt | 4 |
 | Max prompt / completion | 1024 / 2048 tokens |
 | LoRA | r=64, alpha=64, dropout 0.05 |
@@ -121,7 +138,10 @@ the published numbers, since that is a different training condition.
 ```
 train/
   prepare_data.py              downloads + converts the training data
-  train_grpo_qwen3vl_4b.sh     training entry point
+  train_grpo.sh                training entry point (all sizes)
+  train_grpo_qwen3vl_4b.sh     per-size wrappers around train_grpo.sh
+  train_grpo_qwen3vl_8b.sh
+  train_grpo_qwen3vl_32b.sh
   merge_lora.sh                folds LoRA adapters back into the base model
   zero2_no_offload.json        DeepSpeed ZeRO-2 config
   requirements.txt
