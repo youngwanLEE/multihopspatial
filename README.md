@@ -14,7 +14,7 @@
 > **Contents**
 > - [Overview](#overview) · [Key Features](#key-features)
 > - [Model Zoo](#model-zoo) — released 4B / 8B / 32B checkpoints
-> - [Benchmark](#benchmark) — [results](#results) · [commercial APIs](#commercial-api-models-claude-gpt-gemini) · [reproducibility](#a-note-on-reproducibility)
+> - [Benchmark](#benchmark) — [results](#results) · [reproducibility](#a-note-on-reproducibility) · [commercial APIs](#commercial-api-models-claude-gpt-gemini)
 > - [Training](#training) — GRPO post-training, one command
 > - [Requirements](#requirements) · [Citation](#citation)
 
@@ -96,21 +96,6 @@ Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**
 | 32B-Instruct | Paper | 67.22 | 56.87 | 72.01 |
 | 32B-Instruct | Reproduced (vLLM) | 67.42 | 57.22 | 72.14 |
 
-### Commercial API models (Claude, GPT, Gemini)
-
-`eval/benchmark_claude.py`, `eval/benchmark_gpt.py`, and `eval/benchmark_gemini.py` evaluate closed-source models the same way — auto-downloading the dataset, no manual setup. Each reads its API key from an environment variable and exits with a clear error (plus a signup link) if it isn't set; see the header comment in each script for provider-specific notes.
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."   # benchmark_claude.py — https://console.anthropic.com/
-export OPENAI_API_KEY="sk-..."          # benchmark_gpt.py    — https://platform.openai.com/
-export GEMINI_API_KEY="AIza..."         # benchmark_gemini.py — https://aistudio.google.com/
-
-cd eval
-python benchmark_claude.py --test_samples 5
-python benchmark_gpt.py --model gpt-5.2 --test_samples 5
-python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
-```
-
 ### A note on reproducibility
 
 > [!IMPORTANT]
@@ -134,6 +119,22 @@ Given the test set has 4,500 samples, a handful of borderline flips easily expla
 Also note: the 8B/32B numbers above used the checkpoints' own `generation_config.json` sampling settings (temperature=0.7, unseeded) rather than `--greedy`, matching how they were originally evaluated — so slightly larger run-to-run variance is expected for those than for the greedy 4B numbers.
 
 </details>
+
+### Commercial API models (Claude, GPT, Gemini)
+
+`eval/benchmark_claude.py`, `eval/benchmark_gpt.py`, and `eval/benchmark_gemini.py` evaluate closed-source models the same way — auto-downloading the dataset, no manual setup. Each reads its API key from an environment variable and exits with a clear error (plus a signup link) if it isn't set; see the header comment in each script for provider-specific notes.
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."   # benchmark_claude.py — https://console.anthropic.com/
+export OPENAI_API_KEY="sk-..."          # benchmark_gpt.py    — https://platform.openai.com/
+export GEMINI_API_KEY="AIza..."         # benchmark_gemini.py — https://aistudio.google.com/
+
+cd eval
+python benchmark_claude.py --test_samples 5
+python benchmark_gpt.py --model gpt-5.2 --test_samples 5
+python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
+```
+
 
 
 ## Training
