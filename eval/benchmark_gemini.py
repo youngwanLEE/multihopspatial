@@ -15,6 +15,10 @@ Authentication
 Reads the API key from the GEMINI_API_KEY environment variable:
     export GEMINI_API_KEY="AIza..."
 
+The key is never taken as a CLI argument, so it can't leak into your
+shell history. For the same reason, don't paste one into this file -
+use `export`, a .env loaded by your shell profile, or a CI secret store.
+
 Coordinate System (important - differs from Claude/GPT!)
 ----------------------------------------------------------
 Gemini's spatial-understanding convention returns bounding boxes as

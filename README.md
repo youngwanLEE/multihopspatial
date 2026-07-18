@@ -14,7 +14,7 @@
 > **Contents**
 > - [Overview](#overview) · [Key Features](#key-features)
 > - [Model Zoo](#model-zoo) — released 4B / 8B / 32B checkpoints
-> - [Evaluation](#evaluation) — [commercial APIs](#commercial-api-models-claude-gpt-gemini) · [results](#results) · [reproducibility](#a-note-on-reproducibility)
+> - [Benchmark](#benchmark) — [results](#results) · [commercial APIs](#commercial-api-models-claude-gpt-gemini) · [reproducibility](#a-note-on-reproducibility)
 > - [Training](#training) — GRPO post-training, one command
 > - [Requirements](#requirements) · [Citation](#citation)
 
@@ -37,16 +37,17 @@ All 4,500 benchmark QA pairs and bounding boxes are **strictly annotated by ten 
 GRPO post-trained on MultihopSpatial-Train. All three are drop-in replacements for
 their Qwen3-VL base model.
 
-| Model | Base | HF Hub |
+| Model | Base | Download |
 |---|---|---|
-| MultiHopSpatial-Qwen3-VL-4B-Instruct | Qwen3-VL-4B-Instruct | [etri-vilab/...-4B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct) |
-| MultiHopSpatial-Qwen3-VL-8B-Instruct | Qwen3-VL-8B-Instruct | [etri-vilab/...-8B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-8B-Instruct) |
-| MultiHopSpatial-Qwen3-VL-32B-Instruct | Qwen3-VL-32B-Instruct | [etri-vilab/...-32B-Instruct](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-32B-Instruct) |
+| MultiHopSpatial-Qwen3-VL-4B-Instruct | Qwen3-VL-4B-Instruct | <a href="https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" height="14"> weight</a> |
+| MultiHopSpatial-Qwen3-VL-8B-Instruct | Qwen3-VL-8B-Instruct | <a href="https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-8B-Instruct"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" height="14"> weight</a> |
+| MultiHopSpatial-Qwen3-VL-32B-Instruct | Qwen3-VL-32B-Instruct | <a href="https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-32B-Instruct"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" height="14"> weight</a> |
 
-The benchmark itself lives at [etri-vilab/MultihopSpatial](https://huggingface.co/datasets/etri-vilab/MultihopSpatial)
+The benchmark itself lives at
+<a href="https://huggingface.co/datasets/etri-vilab/MultihopSpatial"><img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" height="14"> dataset</a>
 — 4,500 test samples and 6,791 training samples, images included.
 
-## Evaluation
+## Benchmark
 
 Evaluation code is in [`eval/`](eval/). Both scripts auto-download the test set (JSON + 6,493 images) from the [HF dataset](https://huggingface.co/datasets/etri-vilab/MultihopSpatial) and the model checkpoint from the [HF Hub](https://huggingface.co/etri-vilab/MultiHopSpatial-Qwen3-VL-4B-Instruct) on first run — no manual data setup needed.
 
@@ -81,30 +82,6 @@ python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-3
     --gpus 0,1,2,3,4,5,6,7 --max_model_len 32768
 ```
 
-### Commercial API models (Claude, GPT, Gemini)
-
-`eval/benchmark_claude.py`, `eval/benchmark_gpt.py`, and `eval/benchmark_gemini.py` evaluate closed-source models the same way — auto-downloading the dataset, no manual setup. **None of them take an API key as a CLI argument or hardcode one in source** — each reads its key from an environment variable and exits with a clear error (plus a signup link) if it isn't set:
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."   # benchmark_claude.py — https://console.anthropic.com/
-export OPENAI_API_KEY="sk-..."          # benchmark_gpt.py    — https://platform.openai.com/
-export GEMINI_API_KEY="AIza..."         # benchmark_gemini.py — https://aistudio.google.com/
-
-cd eval
-python benchmark_claude.py --test_samples 5
-python benchmark_gpt.py --model gpt-5.2 --test_samples 5
-python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
-```
-
-> [!IMPORTANT]
-> Never commit a file containing a real API key, and don't pass one as a `--` flag —
-> it would land in your shell history. Set it via `export` in your shell, a `.env`
-> file loaded by your shell profile, or your CI secret store.
-
-> [!TIP]
-> Free-tier Gemini keys are capped at a low requests-per-minute quota. If you hit
-> `429` errors, pass `--concurrency 1` (or `2`). Not a concern on a paid-tier key.
-
 ### Results
 
 Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**, plus a per-hop/per-view breakdown. Reproduced numbers on the full 4,500-sample test set, independently verified against the paper (4B/8B/32B numbers appear in the camera-ready version):
@@ -118,6 +95,21 @@ Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**
 | 8B-Instruct | Reproduced (vLLM) | 61.49 | 52.07 | 71.79 |
 | 32B-Instruct | Paper | 67.22 | 56.87 | 72.01 |
 | 32B-Instruct | Reproduced (vLLM) | 67.42 | 57.22 | 72.14 |
+
+### Commercial API models (Claude, GPT, Gemini)
+
+`eval/benchmark_claude.py`, `eval/benchmark_gpt.py`, and `eval/benchmark_gemini.py` evaluate closed-source models the same way — auto-downloading the dataset, no manual setup. Each reads its API key from an environment variable and exits with a clear error (plus a signup link) if it isn't set; see the header comment in each script for provider-specific notes.
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."   # benchmark_claude.py — https://console.anthropic.com/
+export OPENAI_API_KEY="sk-..."          # benchmark_gpt.py    — https://platform.openai.com/
+export GEMINI_API_KEY="AIza..."         # benchmark_gemini.py — https://aistudio.google.com/
+
+cd eval
+python benchmark_claude.py --test_samples 5
+python benchmark_gpt.py --model gpt-5.2 --test_samples 5
+python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
+```
 
 ### A note on reproducibility
 
@@ -181,20 +173,31 @@ needs `pip install -r train/requirements.txt`).
 
 <br>
 
-Evaluation was verified against torch 2.8.0, torchvision 0.23.0, transformers 4.57.0,
-accelerate 1.6.0, huggingface_hub 0.36.2, qwen-vl-utils 0.0.14, pillow 12.1.1 and
-tqdm 4.67.3, on CUDA 12.8.
+Verified on CUDA 12.8; training on 8x A100 80GB.
 
-The vLLM backend additionally needs vllm 0.11.0. The commercial API scripts need the
-SDK for whichever provider you're using — anthropic 0.85.0, openai 2.24.0, or
-google-genai 1.73.1.
+| Library | Version | Needed for |
+|---|---|---|
+| torch | 2.8.0 | everything |
+| torchvision | 0.23.0 | everything |
+| transformers | 4.57.0 | everything |
+| accelerate | 1.6.0 | everything |
+| huggingface_hub | 0.36.2 | everything |
+| qwen-vl-utils | 0.0.14 | everything |
+| pillow | 12.1.1 | everything |
+| tqdm | 4.67.3 | everything |
+| vllm | 0.11.0 | `benchmark_qwen_vllm.py` |
+| anthropic | 0.85.0 | `benchmark_claude.py` |
+| openai | 2.24.0 | `benchmark_gpt.py` |
+| google-genai | 1.73.1 | `benchmark_gemini.py` |
+| trl | 0.23.1 | training |
+| peft | 0.16.0 | training |
+| deepspeed | 0.18.6 | training |
+| datasets | 4.5.0 | training |
+| flash-attn | 2.7.2.post1 | optional, see below |
 
-Training adds trl 0.23.1, peft 0.16.0, deepspeed 0.18.6 and datasets 4.5.0, and was
-verified on 8x A100 80GB.
-
-flash-attn 2.7.2.post1 is optional but makes the transformers backend faster and
-lighter on memory. Install it last, after everything else, since it builds against
-the installed torch:
+flash-attn is optional but makes the transformers backend faster and lighter on
+memory. Install it last, after everything else, since it builds against the torch
+you just installed:
 
 ```bash
 pip install flash-attn==2.7.2.post1 --no-build-isolation

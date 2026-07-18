@@ -15,6 +15,10 @@ Authentication
 Reads the API key from the ANTHROPIC_API_KEY environment variable:
     export ANTHROPIC_API_KEY="sk-ant-..."
 
+The key is never taken as a CLI argument, so it can't leak into your
+shell history. For the same reason, don't paste one into this file -
+use `export`, a .env loaded by your shell profile, or a CI secret store.
+
 Coordinate System
 ------------------
 Claude is prompted for normalized 0-1 [x1, y1, x2, y2] coordinates via
