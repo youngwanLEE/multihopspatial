@@ -59,6 +59,23 @@ python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-3
     --gpus 0,1,2,3,4,5,6,7 --max_model_len 32768
 ```
 
+### Requirements
+
+Install via `pip install -r eval/requirements.txt`. Exact versions this was verified against:
+
+| Library | Version | Needed by |
+|---|---|---|
+| torch | 2.8.0 | both |
+| torchvision | 0.23.0 | both |
+| transformers | 4.57.0 | both |
+| accelerate | 1.6.0 | both |
+| huggingface_hub | 0.36.2 | both |
+| qwen-vl-utils | 0.0.14 | both |
+| pillow | 12.1.1 | both |
+| tqdm | 4.67.3 | both |
+| vllm | 0.11.0 | `benchmark_qwen_vllm.py` only |
+| flash-attn | 2.7.2.post1 (optional) | `benchmark_qwen.py`, faster/lower-memory transformers inference — install separately with `--no-build-isolation` after the rest |
+
 Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**, plus a per-hop/per-view breakdown. Reproduced numbers on the full 4,500-sample test set, independently verified against the paper (4B/8B/32B numbers appear in the camera-ready version):
 
 | Model | Source | MCQ Acc | Acc@50IoU | Avg IoU |
@@ -70,8 +87,6 @@ Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**
 | 8B-Instruct | Reproduced (vLLM) | 61.49 | 52.07 | 71.79 |
 | 32B-Instruct | Paper | 67.22 | 56.87 | 72.01 |
 | 32B-Instruct | Reproduced (vLLM) | 67.42 | 57.22 | 72.14 |
-
-See `eval/requirements.txt` for the exact library versions this was verified against.
 
 ### A note on reproducibility
 
@@ -88,10 +103,10 @@ Also note: the 8B/32B numbers above used the checkpoints' own `generation_config
 
 ## Citation
 ```bibtex
-@article{lee2025multihopspatial,
+@inproceedings{lee2026multihopspatial,
   title={MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Models},
   author={Lee, Youngwan and Jang, Soojin and Cho, Yoorhim and Lee, Seunghwan and Lee, Yong-Ju and Hwang, Sung Ju},
-  journal={arXiv preprint arXiv:2603.18892},
-  year={2025}
+  booktitle={European Conference on Computer Vision (ECCV)},
+  year={2026}
 }
 ```
