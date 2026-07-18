@@ -59,22 +59,44 @@ python benchmark_qwen_vllm.py --model_path etri-vilab/MultiHopSpatial-Qwen3-VL-3
     --gpus 0,1,2,3,4,5,6,7 --max_model_len 32768
 ```
 
+### Commercial API models (Claude, GPT, Gemini)
+
+`eval/benchmark_claude.py`, `eval/benchmark_gpt.py`, and `eval/benchmark_gemini.py` evaluate closed-source models the same way — auto-downloading the dataset, no manual setup. **None of them take an API key as a CLI argument or hardcode one in source** — each reads its key from an environment variable and exits with a clear error (plus a signup link) if it isn't set:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."   # benchmark_claude.py — https://console.anthropic.com/
+export OPENAI_API_KEY="sk-..."          # benchmark_gpt.py    — https://platform.openai.com/
+export GEMINI_API_KEY="AIza..."         # benchmark_gemini.py — https://aistudio.google.com/
+
+cd eval
+python benchmark_claude.py --test_samples 5
+python benchmark_gpt.py --model gpt-5.2 --test_samples 5
+python benchmark_gemini.py --model gemini-3-flash-preview --test_samples 5
+```
+
+Never commit a file containing a real key, and don't pass one as a `--` flag (it would land in your shell history). Set it via `export` in your shell, a `.env` file loaded by your shell profile, or your CI secret store.
+
+Note: free-tier Gemini API keys are capped at a low requests-per-minute quota — pass `--concurrency 1` (or 2) if you hit `429` errors; this isn't a concern on a paid-tier key.
+
 ### Requirements
 
 Install via `pip install -r eval/requirements.txt`. Exact versions this was verified against:
 
 | Library | Version | Needed by |
 |---|---|---|
-| torch | 2.8.0 | both |
-| torchvision | 0.23.0 | both |
-| transformers | 4.57.0 | both |
-| accelerate | 1.6.0 | both |
-| huggingface_hub | 0.36.2 | both |
-| qwen-vl-utils | 0.0.14 | both |
-| pillow | 12.1.1 | both |
-| tqdm | 4.67.3 | both |
+| torch | 2.8.0 | Qwen scripts |
+| torchvision | 0.23.0 | Qwen scripts |
+| transformers | 4.57.0 | Qwen scripts |
+| accelerate | 1.6.0 | Qwen scripts |
+| huggingface_hub | 0.36.2 | all scripts |
+| qwen-vl-utils | 0.0.14 | Qwen scripts |
+| pillow | 12.1.1 | all scripts |
+| tqdm | 4.67.3 | all scripts |
 | vllm | 0.11.0 | `benchmark_qwen_vllm.py` only |
 | flash-attn | 2.7.2.post1 (optional) | `benchmark_qwen.py`, faster/lower-memory transformers inference — install separately with `--no-build-isolation` after the rest |
+| anthropic | 0.85.0 | `benchmark_claude.py` only |
+| openai | 2.24.0 | `benchmark_gpt.py` only |
+| google-genai | 1.73.1 | `benchmark_gemini.py` only |
 
 Each script reports overall **MCQ Accuracy**, **Acc@50IoU**, and **Average IoU**, plus a per-hop/per-view breakdown. Reproduced numbers on the full 4,500-sample test set, independently verified against the paper (4B/8B/32B numbers appear in the camera-ready version):
 
