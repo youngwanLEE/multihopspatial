@@ -1,1 +1,9 @@
 .DS_Store
+
+# eval/ scripts auto-download the dataset and write results here - never commit
+eval/data/
+eval/result/
+eval/results_*.json
+eval/*.log
+__pycache__/
+*.pyc
