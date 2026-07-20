@@ -3,7 +3,8 @@
 # eval/ scripts auto-download the dataset and write results here - never commit
 eval/data/
 eval/result/
-eval/results_*.json
+eval/result*/
+eval/results_*
 eval/*.log
 
 # train/ downloads the dataset here and writes checkpoints/logs - never commit
