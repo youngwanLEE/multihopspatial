@@ -93,29 +93,28 @@ def to_grpo_format(records: list[dict]) -> list[dict]:
         question = record["question_tag"]
         answer = record["answer"]
 
-        converted.append({
-            "id": record.get("id"),
-            "image": record["image_path"],
-            "image_resolution": record["image_resolution"],
-            "bbox": record["bbox"],
-            "response": answer,
-            "view": record.get("view"),
-            "hop": record.get("hop"),
-            "conversations": [
-                {"from": "human", "value": f"<image>\n{question}"},
-                {"from": "gpt", "value": answer},
-            ],
-        })
+        converted.append(
+            {
+                "id": record.get("id"),
+                "image": record["image_path"],
+                "image_resolution": record["image_resolution"],
+                "bbox": record["bbox"],
+                "response": answer,
+                "view": record.get("view"),
+                "hop": record.get("hop"),
+                "conversations": [
+                    {"from": "human", "value": f"<image>\n{question}"},
+                    {"from": "gpt", "value": answer},
+                ],
+            }
+        )
     return converted
 
 
 def verify(converted: list[dict], image_root: str) -> None:
     """Fails loudly if the converted data would break training."""
     required = ("image", "conversations", "response", "bbox", "image_resolution")
-    missing_fields = [
-        i for i, r in enumerate(converted)
-        if any(r.get(k) is None for k in required)
-    ]
+    missing_fields = [i for i, r in enumerate(converted) if any(r.get(k) is None for k in required)]
     if missing_fields:
         raise SystemExit(
             f"{len(missing_fields)} records are missing required fields "
@@ -123,8 +122,7 @@ def verify(converted: list[dict], image_root: str) -> None:
         )
 
     missing_images = [
-        r["image"] for r in converted
-        if not os.path.exists(os.path.join(image_root, r["image"]))
+        r["image"] for r in converted if not os.path.exists(os.path.join(image_root, r["image"]))
     ]
     if missing_images:
         raise SystemExit(
@@ -133,21 +131,30 @@ def verify(converted: list[dict], image_root: str) -> None:
         )
 
     bad_bbox = [
-        r["id"] for r in converted
-        if not (isinstance(r["bbox"], list) and len(r["bbox"]) == 4)
+        r["id"] for r in converted if not (isinstance(r["bbox"], list) and len(r["bbox"]) == 4)
     ]
     if bad_bbox:
-        raise SystemExit(f"{len(bad_bbox)} records have a malformed bbox (first few: {bad_bbox[:5]})")
+        raise SystemExit(
+            f"{len(bad_bbox)} records have a malformed bbox (first few: {bad_bbox[:5]})"
+        )
 
     print(f"Verified {len(converted)} records: fields present, images resolve, bboxes well-formed.")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--data_dir", default=DEFAULT_DATA_DIR,
-                        help=f"Where to cache the downloaded dataset (default: {DEFAULT_DATA_DIR})")
-    parser.add_argument("--output", default=DEFAULT_OUTPUT,
-                        help=f"Path for the converted training JSON (default: {DEFAULT_OUTPUT})")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--data_dir",
+        default=DEFAULT_DATA_DIR,
+        help=f"Where to cache the downloaded dataset (default: {DEFAULT_DATA_DIR})",
+    )
+    parser.add_argument(
+        "--output",
+        default=DEFAULT_OUTPUT,
+        help=f"Path for the converted training JSON (default: {DEFAULT_OUTPUT})",
+    )
     args = parser.parse_args()
 
     json_path, image_root = download_dataset(args.data_dir)
@@ -165,7 +172,9 @@ def main() -> None:
 
     print(f"\nWrote {len(converted)} records -> {args.output}")
     print("\nTrain with:")
-    print(f"    bash train_grpo_qwen3vl_4b.sh --data_path {args.output} --image_folder {image_root}")
+    print(
+        f"    bash train_grpo_qwen3vl_4b.sh --data_path {args.output} --image_folder {image_root}"
+    )
 
 
 if __name__ == "__main__":

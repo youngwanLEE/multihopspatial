@@ -1,19 +1,22 @@
-from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import (
-    Qwen2_5_VisionPatchEmbed,
-    Qwen2_5_VisionRotaryEmbedding,
-    Qwen2_5_VLVisionBlock,
-    Qwen2_5_VLPatchMerger,
-    Qwen2_5_VLPreTrainedModel
-)
-from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
+from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
+from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import (
+    Qwen2_5_VisionPatchEmbed,
+    Qwen2_5_VisionRotaryEmbedding,
+    Qwen2_5_VLPatchMerger,
+    Qwen2_5_VLPreTrainedModel,
+    Qwen2_5_VLVisionBlock,
+)
+
 
 def replace_qwen2_5_vision():
-    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VisionTransformerPretrainedModel = Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow
+    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VisionTransformerPretrainedModel = (
+        Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow
+    )
+
 
 class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTrainedModel):
     config: Qwen2_5_VLVisionConfig
@@ -38,7 +41,10 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         self.rotary_pos_emb = Qwen2_5_VisionRotaryEmbedding(head_dim // 2)
 
         self.blocks = nn.ModuleList(
-            [Qwen2_5_VLVisionBlock(config, config._attn_implementation) for _ in range(config.depth)]
+            [
+                Qwen2_5_VLVisionBlock(config, config._attn_implementation)
+                for _ in range(config.depth)
+            ]
         )
         self.merger = Qwen2_5_VLPatchMerger(
             dim=config.out_hidden_size,
@@ -87,10 +93,16 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
                 grid_h // self.spatial_merge_size,
                 grid_w // self.spatial_merge_size,
             )
-            index = torch.arange(grid_t * llm_grid_h * llm_grid_w).reshape(grid_t, llm_grid_h, llm_grid_w)
+            index = torch.arange(grid_t * llm_grid_h * llm_grid_w).reshape(
+                grid_t, llm_grid_h, llm_grid_w
+            )
 
-            pad_h = (vit_merger_window_size - llm_grid_h % vit_merger_window_size) % vit_merger_window_size
-            pad_w = (vit_merger_window_size - llm_grid_w % vit_merger_window_size) % vit_merger_window_size
+            pad_h = (
+                vit_merger_window_size - llm_grid_h % vit_merger_window_size
+            ) % vit_merger_window_size
+            pad_w = (
+                vit_merger_window_size - llm_grid_w % vit_merger_window_size
+            ) % vit_merger_window_size
 
             num_windows_h = (llm_grid_h + pad_h) // vit_merger_window_size
             num_windows_w = (llm_grid_w + pad_w) // vit_merger_window_size
@@ -119,7 +131,6 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         window_index = torch.cat(window_index, dim=0)
 
         return window_index, cu_window_seqlens
-
 
     def forward(self, hidden_states: torch.Tensor, grid_thw: torch.Tensor) -> torch.Tensor:
         hidden_states = self.patch_embed(hidden_states)
@@ -150,15 +161,17 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
         emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
         position_embeddings = (emb.cos(), emb.sin())
 
-        cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
+        cu_seqlens = torch.repeat_interleave(
+            grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]
+        ).cumsum(
             dim=0,
             dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
         )
         cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
 
         if cu_seqlens.device != hidden_states.device:
-             cu_seqlens = cu_seqlens.to(hidden_states.device, non_blocking=True)
-             
+            cu_seqlens = cu_seqlens.to(hidden_states.device, non_blocking=True)
+
         for layer_num, blk in enumerate(self.blocks):
             if layer_num in self.fullatt_block_indexes:
                 cu_seqlens_now = cu_seqlens
@@ -170,12 +183,22 @@ class Qwen2_5_VisionTransformerPretrainedModelWithPatchedWindow(Qwen2_5_VLPreTra
                     blk.__call__, hidden_states, cu_seqlens_now, None, position_embeddings
                 )
             else:
-                hidden_states = blk(hidden_states, cu_seqlens=cu_seqlens_now, position_embeddings=position_embeddings)
+                hidden_states = blk(
+                    hidden_states,
+                    cu_seqlens=cu_seqlens_now,
+                    position_embeddings=position_embeddings,
+                )
 
         hidden_states = self.merger(hidden_states)
 
         reverse_indices = torch.empty_like(window_index_dev)
-        reverse_indices.scatter_(0, window_index_dev, torch.arange(window_index_dev.numel(), dtype=torch.long, device=window_index_dev.device))
+        reverse_indices.scatter_(
+            0,
+            window_index_dev,
+            torch.arange(
+                window_index_dev.numel(), dtype=torch.long, device=window_index_dev.device
+            ),
+        )
         hidden_states = hidden_states.index_select(0, reverse_indices)
 
         return hidden_states

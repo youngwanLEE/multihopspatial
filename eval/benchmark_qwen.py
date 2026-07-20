@@ -39,19 +39,19 @@ Requirements
     # See requirements.txt for exact pinned versions this was verified against.
 """
 
-import os
-import re
+import argparse
 import json
 import logging
-import argparse
+import os
+import re
 from datetime import datetime
 from typing import Optional
 
 import torch
 from huggingface_hub import snapshot_download
-from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
-from tqdm import tqdm
 from PIL import Image
+from tqdm import tqdm
+from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 
 # =============================================================================
 # Configuration
@@ -72,21 +72,21 @@ def parse_mcq_answer(text: str) -> Optional[str]:
     if not text:
         return None
 
-    m = re.search(r'Answer:\s*(\([a-d]\)\s*[^\n]*)', text, re.IGNORECASE)
+    m = re.search(r"Answer:\s*(\([a-d]\)\s*[^\n]*)", text, re.IGNORECASE)
     if m:
         return m.group(1).strip()
 
-    m = re.search(r'Answer:\s*([a-d])\)\s*([^\n]*)', text, re.IGNORECASE)
+    m = re.search(r"Answer:\s*([a-d])\)\s*([^\n]*)", text, re.IGNORECASE)
     if m:
         letter, desc = m.group(1).lower(), m.group(2).strip()
         return f"({letter}) {desc}" if desc else f"({letter})"
 
-    m = re.search(r'Answer:\s*([a-d])\s*$', text, re.IGNORECASE | re.MULTILINE)
+    m = re.search(r"Answer:\s*([a-d])\s*$", text, re.IGNORECASE | re.MULTILINE)
     if m:
         return f"({m.group(1).lower()})"
 
     # Fallback: bare "(a) ..." anywhere in the text
-    m = re.search(r'(\([a-d]\)\s*[^\n,\[\]]*)', text, re.IGNORECASE)
+    m = re.search(r"(\([a-d]\)\s*[^\n,\[\]]*)", text, re.IGNORECASE)
     if m:
         return m.group(1).strip()
 
@@ -97,13 +97,14 @@ def extract_choice_letter(text: Optional[str]) -> Optional[str]:
     """Extracts the lowercase choice letter (a-d) from a parsed prediction string."""
     if text is None:
         return None
-    m = re.search(r'\(([a-d])\)', text, re.IGNORECASE)
+    m = re.search(r"\(([a-d])\)", text, re.IGNORECASE)
     return m.group(1).lower() if m else None
 
 
 # =============================================================================
 # Dataset / Image Utilities
 # =============================================================================
+
 
 def download_dataset(data_dir: str) -> tuple[str, str]:
     """Downloads (or reuses a cached copy of) the MultihopSpatial test set.
@@ -125,8 +126,8 @@ def download_dataset(data_dir: str) -> tuple[str, str]:
 
 def remove_tags(question: str) -> str:
     """Removes <ATT>, <POS>, <REL> annotation tags from the question text."""
-    cleaned = re.sub(r'</?(?:ATT|POS|REL)>', '', question)
-    return re.sub(r'\s+', ' ', cleaned).strip()
+    cleaned = re.sub(r"</?(?:ATT|POS|REL)>", "", question)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def build_prompt(question: str) -> str:
@@ -141,7 +142,7 @@ where [x1, y1] is the top-left corner and [x2, y2] is the bottom-right corner.""
 
 
 def get_image_path(image_filename: str, image_root: str) -> str:
-    while image_filename.startswith('/') or image_filename.startswith('\\'):
+    while image_filename.startswith("/") or image_filename.startswith("\\"):
         image_filename = image_filename[1:]
     return os.path.join(image_root, image_filename)
 
@@ -154,6 +155,7 @@ def get_image_dimensions(image_path: str) -> tuple[int, int]:
 # =============================================================================
 # BBox / IoU Utilities
 # =============================================================================
+
 
 def normalized_to_pixel(bbox_norm: list, width: int, height: int) -> list:
     x1, y1, x2, y2 = bbox_norm
@@ -186,9 +188,16 @@ def calculate_iou_xyxy(bbox1: list, bbox2: list) -> Optional[float]:
         return None
 
 
-def calculate_iou(bbox_gt_xywh: list, bbox_pred_norm: list, img_width: int, img_height: int) -> Optional[float]:
+def calculate_iou(
+    bbox_gt_xywh: list, bbox_pred_norm: list, img_width: int, img_height: int
+) -> Optional[float]:
     """gt is [x, y, w, h] in pixels; pred is [x1, y1, x2, y2] normalized 0-1."""
-    if bbox_gt_xywh is None or bbox_pred_norm is None or len(bbox_gt_xywh) != 4 or len(bbox_pred_norm) != 4:
+    if (
+        bbox_gt_xywh is None
+        or bbox_pred_norm is None
+        or len(bbox_gt_xywh) != 4
+        or len(bbox_pred_norm) != 4
+    ):
         return None
     try:
         gt_xyxy = xywh_to_xyxy(bbox_gt_xywh)
@@ -207,16 +216,24 @@ def parse_response(response_text: str) -> tuple[Optional[str], Optional[list]]:
     prediction = parse_mcq_answer(response_text)
 
     bbox = None
-    m = re.search(r'Bounding Box:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]',
-                  response_text, re.IGNORECASE)
+    m = re.search(
+        r"Bounding Box:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]",
+        response_text,
+        re.IGNORECASE,
+    )
     if m:
         bbox = [float(m.group(i)) for i in range(1, 5)]
     if bbox is None:
-        m = re.search(r'"bbox_2d"\s*:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]', response_text)
+        m = re.search(
+            r'"bbox_2d"\s*:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]',
+            response_text,
+        )
         if m:
             bbox = [float(m.group(i)) for i in range(1, 5)]
     if bbox is None:
-        m = re.findall(r'\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]', response_text)
+        m = re.findall(
+            r"\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]", response_text
+        )
         if m:
             bbox = [float(v) for v in m[0]]
 
@@ -253,32 +270,35 @@ def compute_score(prediction: Optional[str], answer: Optional[str]) -> bool:
 def calculate_mcq_accuracy(results: list) -> dict:
     total, correct = 0, 0
     for item in results:
-        answer_letter = extract_choice_letter(item.get('answer'))
-        pred_letter = extract_choice_letter(item.get('prediction'))
+        answer_letter = extract_choice_letter(item.get("answer"))
+        pred_letter = extract_choice_letter(item.get("prediction"))
         if answer_letter and pred_letter:
             total += 1
             if answer_letter == pred_letter:
                 correct += 1
     accuracy = correct / total if total > 0 else 0.0
-    return {'total_evaluated': total, 'correct': correct, 'accuracy': round(accuracy * 100, 2)}
+    return {"total_evaluated": total, "correct": correct, "accuracy": round(accuracy * 100, 2)}
 
 
 # =============================================================================
 # Logging
 # =============================================================================
 
+
 def setup_logger(log_file: str) -> logging.Logger:
-    logger = logging.getLogger('benchmark_qwen')
+    logger = logging.getLogger("benchmark_qwen")
     logger.setLevel(logging.DEBUG)
     logger.handlers = []
 
-    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    file_handler.setFormatter(
+        logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    )
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s', datefmt='%H:%M:%S'))
+    console_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", datefmt="%H:%M:%S"))
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
@@ -288,6 +308,7 @@ def setup_logger(log_file: str) -> logging.Logger:
 # =============================================================================
 # Model Loading / Inference
 # =============================================================================
+
 
 def load_model(model_path: str, use_flash_attention: bool = True):
     """Loads a Qwen3-VL model + processor, from a local path or an HF Hub repo id."""
@@ -300,11 +321,15 @@ def load_model(model_path: str, use_flash_attention: bool = True):
     return model, processor
 
 
-def run_inference(model, processor, image_path: str, prompt: str, max_new_tokens: int, **generate_kwargs) -> str:
-    messages = [{
-        "role": "user",
-        "content": [{"type": "image", "image": image_path}, {"type": "text", "text": prompt}],
-    }]
+def run_inference(
+    model, processor, image_path: str, prompt: str, max_new_tokens: int, **generate_kwargs
+) -> str:
+    messages = [
+        {
+            "role": "user",
+            "content": [{"type": "image", "image": image_path}, {"type": "text", "text": prompt}],
+        }
+    ]
     inputs = processor.apply_chat_template(
         messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt"
     ).to(model.device)
@@ -312,14 +337,17 @@ def run_inference(model, processor, image_path: str, prompt: str, max_new_tokens
     with torch.no_grad():
         generated_ids = model.generate(**inputs, max_new_tokens=max_new_tokens, **generate_kwargs)
 
-    trimmed = [out[len(inp):] for inp, out in zip(inputs.input_ids, generated_ids)]
-    output_text = processor.batch_decode(trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+    trimmed = [out[len(inp) :] for inp, out in zip(inputs.input_ids, generated_ids)]
+    output_text = processor.batch_decode(
+        trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+    )
     return output_text[0] if output_text else ""
 
 
 # =============================================================================
 # Main Benchmark Loop
 # =============================================================================
+
 
 def run_benchmark(
     json_path: str,
@@ -332,8 +360,8 @@ def run_benchmark(
     max_retries: int = 3,
     resume: bool = False,
 ) -> dict:
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = output_path.replace('.json', f'_{timestamp}.log')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = output_path.replace(".json", f"_{timestamp}.log")
     logger = setup_logger(log_file)
 
     logger.info("=" * 60)
@@ -357,7 +385,7 @@ def run_benchmark(
     model, processor = load_model(model_path, use_flash_attention)
     logger.info(f"Model loaded on device: {model.device}")
 
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     total_count = len(data)
     if test_samples is not None:
@@ -369,9 +397,11 @@ def run_benchmark(
     existing_results = None
     failed_indices = None
     if resume and os.path.exists(output_path):
-        with open(output_path, 'r', encoding='utf-8') as f:
+        with open(output_path, "r", encoding="utf-8") as f:
             existing_results = json.load(f)
-        failed_indices = {i for i, r in enumerate(existing_results) if 'error' in r or r.get('prediction') is None}
+        failed_indices = {
+            i for i, r in enumerate(existing_results) if "error" in r or r.get("prediction") is None
+        }
         logger.info(f"Resume mode: {len(failed_indices)} failed samples to retry")
 
     results = existing_results if existing_results else [None] * len(data)
@@ -383,16 +413,22 @@ def run_benchmark(
         if failed_indices is not None and idx not in failed_indices:
             continue
 
-        image_filename = item.get('image_path', '')
-        question = item.get('question', '')
-        gt_bbox = item.get('bbox')
+        image_filename = item.get("image_path", "")
+        question = item.get("question", "")
+        gt_bbox = item.get("bbox")
         full_image_path = get_image_path(image_filename, image_root)
 
-        result_item = {**item, 'prediction': None, 'pred_bbox': None, 'iou': None,
-                        'score': False, 'raw_response': ''}
+        result_item = {
+            **item,
+            "prediction": None,
+            "pred_bbox": None,
+            "iou": None,
+            "score": False,
+            "raw_response": "",
+        }
 
         if not os.path.exists(full_image_path):
-            result_item['error'] = f"Image not found: {full_image_path}"
+            result_item["error"] = f"Image not found: {full_image_path}"
             logger.warning(f"[{idx}] Image not found: {full_image_path}")
             results[idx] = result_item
             error_count += 1
@@ -404,108 +440,153 @@ def run_benchmark(
 
             prediction, pred_bbox, raw_response, retry_count = None, None, "", 0
             for attempt in range(max_retries):
-                raw_response = run_inference(model, processor, full_image_path, prompt, max_new_tokens, **generate_kwargs)
+                raw_response = run_inference(
+                    model, processor, full_image_path, prompt, max_new_tokens, **generate_kwargs
+                )
                 prediction, pred_bbox = parse_response(raw_response)
                 if is_valid_prediction(prediction, pred_bbox):
                     break
                 retry_count += 1
                 if attempt < max_retries - 1:
-                    logger.debug(f"[{idx}] Retry {retry_count}/{max_retries - 1}: invalid prediction/bbox")
+                    logger.debug(
+                        f"[{idx}] Retry {retry_count}/{max_retries - 1}: invalid prediction/bbox"
+                    )
 
             iou = calculate_iou(gt_bbox, pred_bbox, img_width, img_height)
 
-            result_item['prediction'] = prediction
-            result_item['pred_bbox'] = pred_bbox
-            result_item['iou'] = iou
-            result_item['score'] = compute_score(prediction, item.get('answer'))
-            result_item['raw_response'] = raw_response
-            result_item['retry_count'] = retry_count
+            result_item["prediction"] = prediction
+            result_item["pred_bbox"] = pred_bbox
+            result_item["iou"] = iou
+            result_item["score"] = compute_score(prediction, item.get("answer"))
+            result_item["raw_response"] = raw_response
+            result_item["retry_count"] = retry_count
 
             results[idx] = result_item
             success_count += 1
             logger.debug(f"[{idx}] Prediction: {prediction} | IoU: {iou}")
 
         except Exception as e:
-            result_item['error'] = str(e)
+            result_item["error"] = str(e)
             logger.error(f"[{idx}] Error: {e}")
             results[idx] = result_item
             error_count += 1
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
 
     elapsed = (datetime.now() - start_time).total_seconds()
     valid_results = [r for r in results if r is not None]
     mcq_stats = calculate_mcq_accuracy(valid_results)
 
-    valid_ious = [r['iou'] for r in valid_results if r.get('iou') is not None and r.get('score')]
+    valid_ious = [r["iou"] for r in valid_results if r.get("iou") is not None and r.get("score")]
     avg_iou = sum(valid_ious) / len(valid_ious) if valid_ious else 0.0
-    iou50_correct = sum(1 for r in valid_results if r.get('score') and r.get('iou') is not None and r['iou'] >= 0.5)
-    acc_at_iou50 = round(iou50_correct / mcq_stats['total_evaluated'] * 100, 2) if mcq_stats['total_evaluated'] else 0.0
+    iou50_correct = sum(
+        1 for r in valid_results if r.get("score") and r.get("iou") is not None and r["iou"] >= 0.5
+    )
+    acc_at_iou50 = (
+        round(iou50_correct / mcq_stats["total_evaluated"] * 100, 2)
+        if mcq_stats["total_evaluated"]
+        else 0.0
+    )
 
     logger.info("-" * 60)
     logger.info("Benchmark Complete!")
     logger.info(f"  Success: {success_count} | Errors: {error_count} | Elapsed: {elapsed:.1f}s")
-    logger.info(f"  MCQ Accuracy: {mcq_stats['accuracy']}% ({mcq_stats['correct']}/{mcq_stats['total_evaluated']})")
+    logger.info(
+        f"  MCQ Accuracy: {mcq_stats['accuracy']}% ({mcq_stats['correct']}/{mcq_stats['total_evaluated']})"
+    )
     logger.info(f"  Avg IoU (MCQ-correct only): {round(avg_iou, 4)}")
     logger.info(f"  Acc@.5IoU: {acc_at_iou50}%")
     logger.info(f"  Results: {output_path}")
 
     return {
-        'total': len(data), 'success': success_count, 'errors': error_count,
-        'mcq_accuracy': mcq_stats['accuracy'], 'mcq_correct': mcq_stats['correct'],
-        'mcq_evaluated': mcq_stats['total_evaluated'], 'avg_iou': round(avg_iou, 4),
-        'acc_at_iou50': acc_at_iou50, 'elapsed_time': round(elapsed, 1),
-        'output_path': output_path, 'log_path': log_file,
+        "total": len(data),
+        "success": success_count,
+        "errors": error_count,
+        "mcq_accuracy": mcq_stats["accuracy"],
+        "mcq_correct": mcq_stats["correct"],
+        "mcq_evaluated": mcq_stats["total_evaluated"],
+        "avg_iou": round(avg_iou, 4),
+        "acc_at_iou50": acc_at_iou50,
+        "elapsed_time": round(elapsed, 1),
+        "output_path": output_path,
+        "log_path": log_file,
     }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='MultihopSpatial Benchmark - Qwen3-VL (Transformers backend)',
+        description="MultihopSpatial Benchmark - Qwen3-VL (Transformers backend)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python benchmark_qwen.py --test_samples 5
   python benchmark_qwen.py --output results_qwen3vl_4b.json
   python benchmark_qwen.py --model_path /path/to/local/checkpoint
-        """
+        """,
     )
-    parser.add_argument('--model_path', type=str, default=DEFAULT_MODEL_PATH,
-                        help=f'HF Hub repo id or local path to a Qwen3-VL checkpoint (default: {DEFAULT_MODEL_PATH})')
-    parser.add_argument('--data_dir', type=str, default=DEFAULT_DATA_DIR,
-                        help=f'Local cache dir for the auto-downloaded dataset (default: {DEFAULT_DATA_DIR})')
-    parser.add_argument('--output', type=str, default=None,
-                        help='Path to save results JSON (default: results_{model}_{timestamp}.json)')
-    parser.add_argument('--test_samples', type=int, default=None,
-                        help='Run on only N samples (omit for the full 4500-sample benchmark)')
-    parser.add_argument('--no_flash_attention', action='store_true', help='Disable Flash Attention 2')
-    parser.add_argument('--max_new_tokens', type=int, default=4096)
-    parser.add_argument('--max_retries', type=int, default=3)
-    parser.add_argument('--resume', action='store_true', help='Resume, retrying only failed samples')
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=DEFAULT_MODEL_PATH,
+        help=f"HF Hub repo id or local path to a Qwen3-VL checkpoint (default: {DEFAULT_MODEL_PATH})",
+    )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default=DEFAULT_DATA_DIR,
+        help=f"Local cache dir for the auto-downloaded dataset (default: {DEFAULT_DATA_DIR})",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to save results JSON (default: results_{model}_{timestamp}.json)",
+    )
+    parser.add_argument(
+        "--test_samples",
+        type=int,
+        default=None,
+        help="Run on only N samples (omit for the full 4500-sample benchmark)",
+    )
+    parser.add_argument(
+        "--no_flash_attention", action="store_true", help="Disable Flash Attention 2"
+    )
+    parser.add_argument("--max_new_tokens", type=int, default=4096)
+    parser.add_argument("--max_retries", type=int, default=3)
+    parser.add_argument(
+        "--resume", action="store_true", help="Resume, retrying only failed samples"
+    )
     args = parser.parse_args()
 
     json_path, image_root = download_dataset(args.data_dir)
 
     if args.output is None:
-        os.makedirs('result', exist_ok=True)
-        model_safe = os.path.basename(args.model_path).replace('/', '_')
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        os.makedirs("result", exist_ok=True)
+        model_safe = os.path.basename(args.model_path).replace("/", "_")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         args.output = f"result/{model_safe}_{ts}.json"
     output_dir = os.path.dirname(args.output)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
     stats = run_benchmark(
-        json_path=json_path, image_root=image_root, output_path=args.output,
-        model_path=args.model_path, test_samples=args.test_samples,
-        use_flash_attention=not args.no_flash_attention, max_new_tokens=args.max_new_tokens,
-        max_retries=args.max_retries, resume=args.resume,
+        json_path=json_path,
+        image_root=image_root,
+        output_path=args.output,
+        model_path=args.model_path,
+        test_samples=args.test_samples,
+        use_flash_attention=not args.no_flash_attention,
+        max_new_tokens=args.max_new_tokens,
+        max_retries=args.max_retries,
+        resume=args.resume,
     )
 
     print("\n" + "=" * 60)
     print("Benchmark Completed!")
-    print(f"MCQ Accuracy: {stats['mcq_accuracy']}% ({stats['mcq_correct']}/{stats['mcq_evaluated']})")
+    print(
+        f"MCQ Accuracy: {stats['mcq_accuracy']}% ({stats['mcq_correct']}/{stats['mcq_evaluated']})"
+    )
     print(f"Average IoU: {stats['avg_iou']} (MCQ correct only)")
     print(f"Acc@.5IoU: {stats['acc_at_iou50']}%")
     print(f"Elapsed Time: {stats['elapsed_time']}s")
@@ -513,5 +594,5 @@ Examples:
     print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

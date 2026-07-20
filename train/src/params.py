@@ -4,10 +4,13 @@ from typing import Optional
 try:
     from accelerate.utils import ParallelismConfig as _PC
 except Exception:
+
     class _PC:
         pass
 
+
 import transformers.training_args as _ta
+
 if not hasattr(_ta, "ParallelismConfig"):
     _ta.ParallelismConfig = _PC
 
@@ -37,55 +40,51 @@ class CLSArguments(HFTrainingArguments):
     unfreeze_topk_vision: int = 0
     mlp_head_dim: Optional[int] = field(default=0)
     mlp_head_dropout: Optional[float] = field(default=0.0)
-    
-    loss_type : str = field(
+
+    loss_type: str = field(
         default="cross_entropy",
-        metadata={"help": "Loss type to use. Should be one of `cross_entropy`, `focal_loss`, `class_balanced_cross_entropy`, or `class_balanced_focal_loss`."}
+        metadata={
+            "help": "Loss type to use. Should be one of `cross_entropy`, `focal_loss`, `class_balanced_cross_entropy`, or `class_balanced_focal_loss`."
+        },
     )
     focal_alpha: Optional[str] = field(
         default=None,
-        metadata={"help": "Focal Loss alpha value. If None use CrossEntropyLoss. ex '1.0,7.5'"}
+        metadata={"help": "Focal Loss alpha value. If None use CrossEntropyLoss. ex '1.0,7.5'"},
     )
-    focal_gamma: float = field(
-        default=0.0,
-        metadata={"help": "Focal Loss gamma value"}
-    )
-    num_labels: int = field(
-        default=2,
-        metadata={"help": "Number of labels for classification."}
-    )
+    focal_gamma: float = field(default=0.0, metadata={"help": "Focal Loss gamma value"})
+    num_labels: int = field(default=2, metadata={"help": "Number of labels for classification."})
     class_balanced_beta: float = field(
         default=0.999,
-        metadata={"help": "Beta value for Class Balanced Loss. If 0.0, use standard CrossEntropyLoss."}
+        metadata={
+            "help": "Beta value for Class Balanced Loss. If 0.0, use standard CrossEntropyLoss."
+        },
     )
     early_stopping_patience: int = field(
         default=0,
-        metadata={"help": "Number of epochs with no improvement after which training will be stopped."}
+        metadata={
+            "help": "Number of epochs with no improvement after which training will be stopped."
+        },
     )
     early_stopping_threshold: float = field(
         default=0.0,
-        metadata={"help": "Minimum change in the monitored quantity to qualify as an improvement."}
+        metadata={"help": "Minimum change in the monitored quantity to qualify as an improvement."},
     )
 
     max_seq_length: int = field(
-        default=32768, # This is the default value of the qwen2-vl model
+        default=32768,  # This is the default value of the qwen2-vl model
         metadata={
-            "help":
-                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
     double_quant: bool = field(
         default=True,
-        metadata={"help": "Compress the quantization statistics through double quantization."}
+        metadata={"help": "Compress the quantization statistics through double quantization."},
     )
     quant_type: str = field(
         default="nf4",
-        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."},
     )
-    bits: int = field(
-        default=16,
-        metadata={"help": "How many bits to use."}
-    )
+    bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     vision_lora: bool = False
     use_dora: bool = False
@@ -97,7 +96,9 @@ class CLSArguments(HFTrainingArguments):
     vision_lr: Optional[float] = None
     merger_lr: Optional[float] = None
     head_lr: Optional[float] = None
-    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    lora_namespan_exclude: str = field(
+        default=None, metadata={"help": "List of namespan to exclude for LoRA"}
+    )
     num_lora_modules: int = -1
     use_liger_kernel: bool = True
 
@@ -118,25 +119,21 @@ class TrainingArguments(HFTrainingArguments):
     unfreeze_topk_vision: int = 0
 
     max_seq_length: int = field(
-        default=32768, # This is the default value of the qwen2-vl model
+        default=32768,  # This is the default value of the qwen2-vl model
         metadata={
-            "help":
-                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
 
     double_quant: bool = field(
         default=True,
-        metadata={"help": "Compress the quantization statistics through double quantization."}
+        metadata={"help": "Compress the quantization statistics through double quantization."},
     )
     quant_type: str = field(
         default="nf4",
-        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."},
     )
-    bits: int = field(
-        default=16,
-        metadata={"help": "How many bits to use."}
-    )
+    bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     vision_lora: bool = False
     use_dora: bool = False
@@ -147,15 +144,18 @@ class TrainingArguments(HFTrainingArguments):
     lora_bias: str = "none"
     vision_lr: Optional[float] = None
     merger_lr: Optional[float] = None
-    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    lora_namespan_exclude: str = field(
+        default=None, metadata={"help": "List of namespan to exclude for LoRA"}
+    )
     num_lora_modules: int = -1
     use_liger_kernel: bool = True
 
     # Generation-based evaluation settings
     generation_max_new_tokens: int = field(
         default=512,
-        metadata={"help": "Maximum number of new tokens to generate during evaluation."}
+        metadata={"help": "Maximum number of new tokens to generate during evaluation."},
     )
+
 
 @dataclass
 class DPOArguments(DPOConfigTRL):
@@ -173,24 +173,20 @@ class DPOArguments(DPOConfigTRL):
     unfreeze_topk_vision: int = 0
 
     max_seq_length: int = field(
-        default=32768, # This is the default value of the qwen2-vl model
+        default=32768,  # This is the default value of the qwen2-vl model
         metadata={
-            "help":
-                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
     double_quant: bool = field(
         default=True,
-        metadata={"help": "Compress the quantization statistics through double quantization."}
+        metadata={"help": "Compress the quantization statistics through double quantization."},
     )
     quant_type: str = field(
         default="nf4",
-        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."},
     )
-    bits: int = field(
-        default=16,
-        metadata={"help": "How many bits to use."}
-    )
+    bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     vision_lora: bool = False
     use_dora: bool = False
@@ -201,21 +197,17 @@ class DPOArguments(DPOConfigTRL):
     lora_bias: str = "none"
     vision_lr: Optional[float] = None
     merger_lr: Optional[float] = None
-    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    lora_namespan_exclude: str = field(
+        default=None, metadata={"help": "List of namespan to exclude for LoRA"}
+    )
     num_lora_modules: int = -1
     use_liger_loss: bool = True
-    beta: float = field(
-        default=0.1,
-        metadata={"help": "The beta value for DPO."}
-    )
+    beta: float = field(default=0.1, metadata={"help": "The beta value for DPO."})
     precompute_ref_log_probs: bool = field(
-        default=False,
-        metadata={"help": "Whether to precompute the reference log probabilities."}
+        default=False, metadata={"help": "Whether to precompute the reference log probabilities."}
     )
-    dpo_loss:str = field(
-        default="sigmoid",
-        metadata={"help": "The type of DPO loss to use."}
-    )
+    dpo_loss: str = field(default="sigmoid", metadata={"help": "The type of DPO loss to use."})
+
 
 @dataclass
 class GRPOArguments(GRPOConfigTRL):
@@ -235,21 +227,20 @@ class GRPOArguments(GRPOConfigTRL):
     # Debug mode for MSR reward debugging
     debug_mode: bool = field(
         default=False,
-        metadata={"help": "Enable debug mode to print raw model outputs and parsing results for reward calculation."}
+        metadata={
+            "help": "Enable debug mode to print raw model outputs and parsing results for reward calculation."
+        },
     )
 
     double_quant: bool = field(
         default=True,
-        metadata={"help": "Compress the quantization statistics through double quantization."}
+        metadata={"help": "Compress the quantization statistics through double quantization."},
     )
     quant_type: str = field(
         default="nf4",
-        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."}
+        metadata={"help": "Quantization data type to use. Should be one of `fp4` or `nf4`."},
     )
-    bits: int = field(
-        default=16,
-        metadata={"help": "How many bits to use."}
-    )
+    bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     vision_lora: bool = False
     use_dora: bool = False
@@ -260,7 +251,9 @@ class GRPOArguments(GRPOConfigTRL):
     lora_bias: str = "none"
     vision_lr: Optional[float] = None
     merger_lr: Optional[float] = None
-    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    lora_namespan_exclude: str = field(
+        default=None, metadata={"help": "List of namespan to exclude for LoRA"}
+    )
     num_lora_modules: int = -1
     beta: float = field(
         default=0.04,
@@ -273,35 +266,42 @@ class GRPOArguments(GRPOConfigTRL):
     # MSR Reward type selection
     reward_type: str = field(
         default="simple_sum",
-        metadata={"help": "Reward type: 'simple_sum' (α×mcq + β×bbox independent sum, default), 'condition_reward' (α×mcq×(1+β×bbox) gated), or 'mcq-only' (mcq only, no bbox). When simple_sum with α=β=1, falls back to uniform weighted sum."}
+        metadata={
+            "help": "Reward type: 'simple_sum' (α×mcq + β×bbox independent sum, default), 'condition_reward' (α×mcq×(1+β×bbox) gated), or 'mcq-only' (mcq only, no bbox). When simple_sum with α=β=1, falls back to uniform weighted sum."
+        },
     )
 
     # MSR Reward parameters
     msr_reward_alpha: float = field(
         default=1.0,
-        metadata={"help": "Alpha coefficient for MCQ reward. simple_sum: format + α×mcq + β×bbox, conditional: format + α×mcq×(1+β×bbox)"}
+        metadata={
+            "help": "Alpha coefficient for MCQ reward. simple_sum: format + α×mcq + β×bbox, conditional: format + α×mcq×(1+β×bbox)"
+        },
     )
     msr_reward_beta: float = field(
         default=1.0,
-        metadata={"help": "Beta coefficient for bbox reward. simple_sum: format + α×mcq + β×bbox, conditional: format + α×mcq×(1+β×bbox)"}
+        metadata={
+            "help": "Beta coefficient for bbox reward. simple_sum: format + α×mcq + β×bbox, conditional: format + α×mcq×(1+β×bbox)"
+        },
     )
     truncation_penalty_weight: float = field(
         default=1.0,
-        metadata={"help": "Gamma coefficient for truncation penalty in MSR conditional reward: + γ × truncation"}
+        metadata={
+            "help": "Gamma coefficient for truncation penalty in MSR conditional reward: + γ × truncation"
+        },
     )
 
     # GDPO-specific parameters (only used when loss_type=gdpo)
     gdpo_format_weight: float = field(
         default=1.0,
-        metadata={"help": "GDPO weight for format reward (only used when loss_type=gdpo)"}
+        metadata={"help": "GDPO weight for format reward (only used when loss_type=gdpo)"},
     )
     gdpo_mcq_weight: float = field(
-        default=1.0,
-        metadata={"help": "GDPO weight for MCQ reward (only used when loss_type=gdpo)"}
+        default=1.0, metadata={"help": "GDPO weight for MCQ reward (only used when loss_type=gdpo)"}
     )
     gdpo_bbox_weight: float = field(
         default=1.0,
-        metadata={"help": "GDPO weight for bbox reward (only used when loss_type=gdpo)"}
+        metadata={"help": "GDPO weight for bbox reward (only used when loss_type=gdpo)"},
     )
 
     temperature: float = 0.9
@@ -316,19 +316,16 @@ class GRPOArguments(GRPOConfigTRL):
 
 @dataclass
 class DataArguments:
-    data_path: str = field(
-        default=None, metadata={"help": "Path to the training data."}
-    )
-    eval_path: str= field(
-        default=None, metadata={"help": "Path to the evaluation data."}
-    )
+    data_path: str = field(default=None, metadata={"help": "Path to the training data."})
+    eval_path: str = field(default=None, metadata={"help": "Path to the evaluation data."})
     eval_image_folder: Optional[str] = field(
         default=None, metadata={"help": "Path to the evaluation image data."}
     )
     lazy_preprocess: bool = False
     image_folder: Optional[str] = field(default=None)
     image_folder_fallback: Optional[str] = field(
-        default="data/paco", metadata={"help": "Fallback image folder when image is not found in image_folder."}
+        default="data/paco",
+        metadata={"help": "Fallback image folder when image is not found in image_folder."},
     )
     image_min_pixels: Optional[int] = field(default=3136)
     image_max_pixels: Optional[int] = field(default=12845056)
@@ -339,14 +336,20 @@ class DataArguments:
     video_resized_width: int = field(default=None)
     video_resized_height: int = field(default=None)
     fps: Optional[int] = field(default=None, metadata={"help": "Frames per second for video data."})
-    nframes: Optional[int] = field(default=None, metadata={"help": "Number of frames for video data."})
+    nframes: Optional[int] = field(
+        default=None, metadata={"help": "Number of frames for video data."}
+    )
     strip_bbox_instruction: bool = field(
         default=False,
-        metadata={"help": "Strip bbox instruction text from human queries for SFT training on GRPO-format data."}
+        metadata={
+            "help": "Strip bbox instruction text from human queries for SFT training on GRPO-format data."
+        },
     )
     include_bbox_in_response: bool = field(
         default=False,
-        metadata={"help": "Include bbox in assistant response for SFT training. "
-                  "Converts [x,y,w,h] pixel bbox to 0-1000 scale [x1,y1,x2,y2] "
-                  "and formats as 'Answer: ...\\nBounding Box: [x1, y1, x2, y2]'."}
+        metadata={
+            "help": "Include bbox in assistant response for SFT training. "
+            "Converts [x,y,w,h] pixel bbox to 0-1000 scale [x1,y1,x2,y2] "
+            "and formats as 'Answer: ...\\nBounding Box: [x1, y1, x2, y2]'."
+        },
     )

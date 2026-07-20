@@ -1,17 +1,21 @@
-import transformers
-import torch
 import logging
 
+import torch
+import transformers
 
-def maybe_zero_3(param, ignore_status=False, name=None, device=torch.device('cpu')):
+
+def maybe_zero_3(param, ignore_status=False, name=None, device=torch.device("cpu")):
     from deepspeed import zero
     from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
+
     if type(device) is str:
         device = torch.device(device)
     if hasattr(param, "ds_id"):
         if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
             if not ignore_status:
-                logging.warning(f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}")
+                logging.warning(
+                    f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}"
+                )
         with zero.GatheredParameters([param]):
             param = param.data.detach()
     else:
@@ -20,6 +24,7 @@ def maybe_zero_3(param, ignore_status=False, name=None, device=torch.device('cpu
         return param.clone()
     else:
         return param.to(device)
+
 
 # Borrowed from peft.utils.get_peft_model_state_dict
 def get_peft_state_maybe_zero_3(named_params, bias):
@@ -54,8 +59,8 @@ def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
     to_return = {k: maybe_zero_3(v, ignore_status=True) for k, v in to_return.items()}
     return to_return
 
-def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
-                                   output_dir: str):
+
+def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str):
     """Collects the state dict and dump to disk."""
 
     if trainer.deepspeed:
@@ -65,10 +70,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
 
     state_dict = trainer.model.state_dict()
     if trainer.args.should_save:
-        cpu_state_dict = {
-            key: value.cpu()
-            for key, value in state_dict.items()
-        }
+        cpu_state_dict = {key: value.cpu() for key, value in state_dict.items()}
         del state_dict
         trainer._save(output_dir, state_dict=cpu_state_dict)  # noqa
         trainer.model.config.save_pretrained(output_dir)

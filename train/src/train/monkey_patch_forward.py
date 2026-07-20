@@ -1,28 +1,41 @@
-from transformers.models.qwen2_vl.modeling_qwen2_vl import Qwen2VLModelOutputWithPast
+from typing import Optional, Union
+
+import torch
+import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
+import transformers.models.qwen2_vl.modeling_qwen2_vl
+import transformers.models.qwen3_vl_moe.modeling_qwen3_vl_moe
+from transformers.cache_utils import Cache
 from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLModelOutputWithPast
+from transformers.models.qwen2_vl.modeling_qwen2_vl import Qwen2VLModelOutputWithPast
 from transformers.models.qwen3_vl.modeling_qwen3_vl import Qwen3VLModelOutputWithPast
 from transformers.models.qwen3_vl_moe.modeling_qwen3_vl_moe import Qwen3VLMoeModelOutputWithPast
-import torch
-from typing import Optional, List, Union, Tuple
-import transformers.models.qwen2_vl.modeling_qwen2_vl
-import transformers.models.qwen2_5_vl.modeling_qwen2_5_vl
-import transformers.models.qwen3_vl_moe.modeling_qwen3_vl_moe
-from transformers.utils import TransformersKwargs
 from transformers.processing_utils import Unpack
-from transformers.cache_utils import Cache
-from transformers.utils import is_torchdynamo_compiling
+from transformers.utils import TransformersKwargs, is_torchdynamo_compiling
+
 
 def replace_qwen_2_with_mixed_modality_forward():
-    transformers.models.qwen2_vl.modeling_qwen2_vl.Qwen2VLModel.forward = qwen2_mixed_modality_forward
+    transformers.models.qwen2_vl.modeling_qwen2_vl.Qwen2VLModel.forward = (
+        qwen2_mixed_modality_forward
+    )
+
 
 def replace_qwen2_5_with_mixed_modality_forward():
-    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VLModel.forward = qwen2_5_mixed_modality_forward
+    transformers.models.qwen2_5_vl.modeling_qwen2_5_vl.Qwen2_5_VLModel.forward = (
+        qwen2_5_mixed_modality_forward
+    )
+
 
 def replace_qwen3_with_mixed_modality_forward():
-    transformers.models.qwen3_vl.modeling_qwen3_vl.Qwen3VLModel.forward = qwen3_vl_mixed_modality_forward
+    transformers.models.qwen3_vl.modeling_qwen3_vl.Qwen3VLModel.forward = (
+        qwen3_vl_mixed_modality_forward
+    )
+
 
 def replace_qwen3_vl_moe_with_mixed_modality_forward():
-    transformers.models.qwen3_vl_moe.modeling_qwen3_vl_moe.Qwen3VLMoeModel.forward = qwen3_vl_moe_mixed_modality_forward
+    transformers.models.qwen3_vl_moe.modeling_qwen3_vl_moe.Qwen3VLMoeModel.forward = (
+        qwen3_vl_moe_mixed_modality_forward
+    )
+
 
 def qwen3_vl_moe_mixed_modality_forward(
     self,
@@ -39,7 +52,7 @@ def qwen3_vl_moe_mixed_modality_forward(
     second_per_grid_ts: Optional[torch.Tensor] = None,
     **kwargs: Unpack[TransformersKwargs],
 ) -> Union[tuple, Qwen3VLMoeModelOutputWithPast]:
-    
+
     if (input_ids is None) ^ (inputs_embeds is not None):
         raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
 
@@ -48,7 +61,7 @@ def qwen3_vl_moe_mixed_modality_forward(
 
     image_mask = None
     video_mask = None
-    
+
     if pixel_values is None and pixel_values_videos is None:
         # Create dummy pixel_values and grid_thw for avoiding deepspeed error.
         dummy_pixel = torch.zeros(1024, 1536).to(self.visual.device)
@@ -56,7 +69,7 @@ def qwen3_vl_moe_mixed_modality_forward(
 
         image_embeds, dummy_deepstack = self.get_image_features(dummy_pixel, dummy_grid)
         image_embeds = torch.cat(image_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
-        
+
         inputs_embeds += image_embeds.mean() * 0
 
     if pixel_values is not None:
@@ -68,7 +81,9 @@ def qwen3_vl_moe_mixed_modality_forward(
         inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
 
     if pixel_values_videos is not None:
-        video_embeds, deepstack_video_embeds = self.get_video_features(pixel_values_videos, video_grid_thw)
+        video_embeds, deepstack_video_embeds = self.get_video_features(
+            pixel_values_videos, video_grid_thw
+        )
         video_embeds = torch.cat(video_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
         _, video_mask = self.get_placeholder_mask(
             input_ids, inputs_embeds=inputs_embeds, video_features=video_embeds
@@ -86,7 +101,9 @@ def qwen3_vl_moe_mixed_modality_forward(
         image_mask_joint = image_mask[visual_pos_masks]
         video_mask_joint = video_mask[visual_pos_masks]
         for img_embed, vid_embed in zip(deepstack_image_embeds, deepstack_video_embeds):
-            embed_joint = img_embed.new_zeros(visual_pos_masks.sum(), img_embed.shape[-1]).to(img_embed.device)
+            embed_joint = img_embed.new_zeros(visual_pos_masks.sum(), img_embed.shape[-1]).to(
+                img_embed.device
+            )
             embed_joint[image_mask_joint, :] = img_embed
             embed_joint[video_mask_joint, :] = vid_embed
             deepstack_visual_embeds.append(embed_joint)
@@ -102,18 +119,21 @@ def qwen3_vl_moe_mixed_modality_forward(
     if visual_pos_masks is None:
         B, S, H = inputs_embeds.shape
         visual_pos_masks = torch.zeros((B, S), dtype=torch.bool, device=inputs_embeds.device)
-        L = len(self.visual.deepstack_visual_indexes)
         deepstack_visual_embeds = [t.narrow(0, 0, 0) for t in dummy_deepstack]
 
     if position_ids is None:
         attention_mask_tensor = (
-            attention_mask if not isinstance(attention_mask, dict) else attention_mask["full_attention"]
+            attention_mask
+            if not isinstance(attention_mask, dict)
+            else attention_mask["full_attention"]
         )
         if attention_mask_tensor is not None and attention_mask_tensor.ndim == 4:
             attention_mask_tensor = torch.diagonal(attention_mask_tensor[:, 0], dim1=1, dim2=2)
             # Only apply conversion for floating point tensors (inverted masks)
             if attention_mask_tensor.dtype.is_floating_point:
-                attention_mask_tensor = attention_mask_tensor / torch.finfo(attention_mask_tensor.dtype).min
+                attention_mask_tensor = (
+                    attention_mask_tensor / torch.finfo(attention_mask_tensor.dtype).min
+                )
                 attention_mask_tensor = (1.0 - attention_mask_tensor).int()
 
         # Calculate RoPE index once per generation in the pre-fill stage only.
@@ -207,7 +227,7 @@ def qwen3_vl_mixed_modality_forward(
 
         image_embeds, dummy_deepstack = self.get_image_features(dummy_pixel, dummy_grid)
         image_embeds = torch.cat(image_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
-        
+
         inputs_embeds += image_embeds.mean() * 0
 
     if pixel_values is not None:
@@ -219,7 +239,9 @@ def qwen3_vl_mixed_modality_forward(
         inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
 
     if pixel_values_videos is not None:
-        video_embeds, deepstack_video_embeds = self.get_video_features(pixel_values_videos, video_grid_thw)
+        video_embeds, deepstack_video_embeds = self.get_video_features(
+            pixel_values_videos, video_grid_thw
+        )
         video_embeds = torch.cat(video_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
         _, video_mask = self.get_placeholder_mask(
             input_ids, inputs_embeds=inputs_embeds, video_features=video_embeds
@@ -237,7 +259,9 @@ def qwen3_vl_mixed_modality_forward(
         image_mask_joint = image_mask[visual_pos_masks]
         video_mask_joint = video_mask[visual_pos_masks]
         for img_embed, vid_embed in zip(deepstack_image_embeds, deepstack_video_embeds):
-            embed_joint = img_embed.new_zeros(visual_pos_masks.sum(), img_embed.shape[-1]).to(img_embed.device)
+            embed_joint = img_embed.new_zeros(visual_pos_masks.sum(), img_embed.shape[-1]).to(
+                img_embed.device
+            )
             embed_joint[image_mask_joint, :] = img_embed
             embed_joint[video_mask_joint, :] = vid_embed
             deepstack_visual_embeds.append(embed_joint)
@@ -253,18 +277,21 @@ def qwen3_vl_mixed_modality_forward(
     if visual_pos_masks is None:
         B, S, H = inputs_embeds.shape
         visual_pos_masks = torch.zeros((B, S), dtype=torch.bool, device=inputs_embeds.device)
-        L = len(self.visual.deepstack_visual_indexes)
         deepstack_visual_embeds = [t.narrow(0, 0, 0) for t in dummy_deepstack]
 
     if position_ids is None:
         attention_mask_tensor = (
-            attention_mask if not isinstance(attention_mask, dict) else attention_mask["full_attention"]
+            attention_mask
+            if not isinstance(attention_mask, dict)
+            else attention_mask["full_attention"]
         )
         if attention_mask_tensor is not None and attention_mask_tensor.ndim == 4:
             attention_mask_tensor = torch.diagonal(attention_mask_tensor[:, 0], dim1=1, dim2=2)
             # Only apply conversion for floating point tensors (inverted masks)
             if attention_mask_tensor.dtype.is_floating_point:
-                attention_mask_tensor = attention_mask_tensor / torch.finfo(attention_mask_tensor.dtype).min
+                attention_mask_tensor = (
+                    attention_mask_tensor / torch.finfo(attention_mask_tensor.dtype).min
+                )
                 attention_mask_tensor = (1.0 - attention_mask_tensor).int()
 
         # Calculate RoPE index once per generation in the pre-fill stage only.
@@ -320,6 +347,7 @@ def qwen3_vl_mixed_modality_forward(
         rope_deltas=self.rope_deltas,
     )
 
+
 def qwen2_5_mixed_modality_forward(
     self,
     input_ids: torch.LongTensor = None,
@@ -351,9 +379,13 @@ def qwen2_5_mixed_modality_forward(
         The time interval (in seconds) for each grid along the temporal dimension in the 3D position IDs.
     """
 
-    output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
+    output_attentions = (
+        output_attentions if output_attentions is not None else self.config.output_attentions
+    )
     output_hidden_states = (
-        output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+        output_hidden_states
+        if output_hidden_states is not None
+        else self.config.output_hidden_states
     )
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -475,9 +507,13 @@ def qwen2_mixed_modality_forward(
         The rope index difference between sequence length and multimodal rope.
     """
 
-    output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
+    output_attentions = (
+        output_attentions if output_attentions is not None else self.config.output_attentions
+    )
     output_hidden_states = (
-        output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+        output_hidden_states
+        if output_hidden_states is not None
+        else self.config.output_hidden_states
     )
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 

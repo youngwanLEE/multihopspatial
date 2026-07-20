@@ -51,19 +51,18 @@ Requirements
     # See requirements.txt for exact pinned versions this was verified against.
 """
 
-import os
-import re
+import argparse
 import json
 import logging
-import argparse
+import os
+import re
 import subprocess
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from huggingface_hub import snapshot_download
-from tqdm import tqdm
 from PIL import Image
+from tqdm import tqdm
 
 # =============================================================================
 # Configuration
@@ -83,15 +82,17 @@ def _has_nvlink() -> bool:
     """
     try:
         visible = os.environ.get("CUDA_VISIBLE_DEVICES")
-        result = subprocess.run(["nvidia-smi", "topo", "-m"], capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            ["nvidia-smi", "topo", "-m"], capture_output=True, text=True, timeout=10
+        )
         if result.returncode != 0:
             return False
         lines = result.stdout.strip().splitlines()
-        header_idx = next((i for i, l in enumerate(lines) if "GPU0" in l), None)
+        header_idx = next((i for i, line in enumerate(lines) if "GPU0" in line), None)
         if header_idx is None:
             return False
         visible_set = {int(x.strip()) for x in visible.split(",")} if visible else None
-        for line in lines[header_idx + 1:]:
+        for line in lines[header_idx + 1 :]:
             if not line.startswith("GPU"):
                 break
             parts = line.split()
@@ -110,7 +111,9 @@ def _has_nvlink() -> bool:
 
 if "NCCL_P2P_DISABLE" not in os.environ and not _has_nvlink():
     os.environ["NCCL_P2P_DISABLE"] = "1"
-    logging.getLogger(__name__).info("No NVLink detected — setting NCCL_P2P_DISABLE=1 to avoid PCIe P2P hangs.")
+    logging.getLogger(__name__).info(
+        "No NVLink detected — setting NCCL_P2P_DISABLE=1 to avoid PCIe P2P hangs."
+    )
 
 from vllm import LLM, SamplingParams  # noqa: E402  (import after NCCL env var is set)
 
@@ -124,20 +127,20 @@ def parse_mcq_answer(text: str) -> Optional[str]:
     if not text:
         return None
 
-    m = re.search(r'Answer:\s*(\([a-d]\)\s*[^\n]*)', text, re.IGNORECASE)
+    m = re.search(r"Answer:\s*(\([a-d]\)\s*[^\n]*)", text, re.IGNORECASE)
     if m:
         return m.group(1).strip()
 
-    m = re.search(r'Answer:\s*([a-d])\)\s*([^\n]*)', text, re.IGNORECASE)
+    m = re.search(r"Answer:\s*([a-d])\)\s*([^\n]*)", text, re.IGNORECASE)
     if m:
         letter, desc = m.group(1).lower(), m.group(2).strip()
         return f"({letter}) {desc}" if desc else f"({letter})"
 
-    m = re.search(r'Answer:\s*([a-d])\s*$', text, re.IGNORECASE | re.MULTILINE)
+    m = re.search(r"Answer:\s*([a-d])\s*$", text, re.IGNORECASE | re.MULTILINE)
     if m:
         return f"({m.group(1).lower()})"
 
-    m = re.search(r'(\([a-d]\)\s*[^\n,\[\]]*)', text, re.IGNORECASE)
+    m = re.search(r"(\([a-d]\)\s*[^\n,\[\]]*)", text, re.IGNORECASE)
     if m:
         return m.group(1).strip()
 
@@ -148,13 +151,14 @@ def extract_choice_letter(text: Optional[str]) -> Optional[str]:
     """Extracts the lowercase choice letter (a-d) from a parsed prediction string."""
     if text is None:
         return None
-    m = re.search(r'\(([a-d])\)', text, re.IGNORECASE)
+    m = re.search(r"\(([a-d])\)", text, re.IGNORECASE)
     return m.group(1).lower() if m else None
 
 
 # =============================================================================
 # Dataset / Image Utilities
 # =============================================================================
+
 
 def download_dataset(data_dir: str) -> tuple[str, str]:
     """Downloads (or reuses a cached copy of) the MultihopSpatial test set."""
@@ -171,8 +175,8 @@ def download_dataset(data_dir: str) -> tuple[str, str]:
 
 
 def remove_tags(question: str) -> str:
-    cleaned = re.sub(r'</?(?:ATT|POS|REL)>', '', question)
-    return re.sub(r'\s+', ' ', cleaned).strip()
+    cleaned = re.sub(r"</?(?:ATT|POS|REL)>", "", question)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def build_prompt(question: str) -> str:
@@ -194,6 +198,7 @@ def get_image_dimensions(image_path: str) -> tuple[int, int]:
 # =============================================================================
 # BBox / IoU Utilities
 # =============================================================================
+
 
 def normalized_to_pixel(bbox_norm: list, width: int, height: int) -> list:
     x1, y1, x2, y2 = bbox_norm
@@ -226,8 +231,15 @@ def calculate_iou_xyxy(bbox1: list, bbox2: list) -> Optional[float]:
         return None
 
 
-def calculate_iou(bbox_gt_xywh: list, bbox_pred_norm: list, img_width: int, img_height: int) -> Optional[float]:
-    if bbox_gt_xywh is None or bbox_pred_norm is None or len(bbox_gt_xywh) != 4 or len(bbox_pred_norm) != 4:
+def calculate_iou(
+    bbox_gt_xywh: list, bbox_pred_norm: list, img_width: int, img_height: int
+) -> Optional[float]:
+    if (
+        bbox_gt_xywh is None
+        or bbox_pred_norm is None
+        or len(bbox_gt_xywh) != 4
+        or len(bbox_pred_norm) != 4
+    ):
         return None
     try:
         gt_xyxy = xywh_to_xyxy(bbox_gt_xywh)
@@ -242,16 +254,24 @@ def parse_response(response_text: str) -> tuple[Optional[str], Optional[list]]:
     prediction = parse_mcq_answer(response_text)
 
     bbox = None
-    m = re.search(r'Bounding Box:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]',
-                  response_text, re.IGNORECASE)
+    m = re.search(
+        r"Bounding Box:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]",
+        response_text,
+        re.IGNORECASE,
+    )
     if m:
         bbox = [float(m.group(i)) for i in range(1, 5)]
     if bbox is None:
-        m = re.search(r'"bbox_2d"\s*:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]', response_text)
+        m = re.search(
+            r'"bbox_2d"\s*:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]',
+            response_text,
+        )
         if m:
             bbox = [float(m.group(i)) for i in range(1, 5)]
     if bbox is None:
-        m = re.findall(r'\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]', response_text)
+        m = re.findall(
+            r"\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]", response_text
+        )
         if m:
             bbox = [float(v) for v in m[0]]
 
@@ -288,48 +308,61 @@ def compute_score(prediction: Optional[str], answer: Optional[str]) -> bool:
 def calculate_full_metrics(results: list) -> dict:
     total, correct = 0, 0
     for r in results:
-        answer_letter = extract_choice_letter(r.get('answer'))
-        pred_letter = extract_choice_letter(r.get('prediction'))
+        answer_letter = extract_choice_letter(r.get("answer"))
+        pred_letter = extract_choice_letter(r.get("prediction"))
         if answer_letter and pred_letter:
             total += 1
             if answer_letter == pred_letter:
                 correct += 1
     accuracy = round(correct / total * 100, 2) if total else 0.0
 
-    valid_ious = [r['iou'] for r in results if r.get('iou') is not None and r.get('score')]
+    valid_ious = [r["iou"] for r in results if r.get("iou") is not None and r.get("score")]
     avg_iou = sum(valid_ious) / len(valid_ious) if valid_ious else 0.0
-    iou50_correct = sum(1 for r in results if r.get('score') and r.get('iou') is not None and r['iou'] >= 0.5)
+    iou50_correct = sum(
+        1 for r in results if r.get("score") and r.get("iou") is not None and r["iou"] >= 0.5
+    )
     acc_at_iou50 = round(iou50_correct / total * 100, 2) if total else 0.0
 
-    return {'total_evaluated': total, 'correct': correct, 'accuracy': accuracy,
-            'acc_at_iou50': acc_at_iou50, 'avg_iou': round(avg_iou, 4)}
+    return {
+        "total_evaluated": total,
+        "correct": correct,
+        "accuracy": accuracy,
+        "acc_at_iou50": acc_at_iou50,
+        "avg_iou": round(avg_iou, 4),
+    }
 
 
 def log_metrics_table(logger, valid_results: list) -> dict:
     overall = calculate_full_metrics(valid_results)
     logger.info("Overall Performance:")
     logger.info(f"  Evaluated: {overall['total_evaluated']}")
-    logger.info(f"  MCQ Acc: {overall['accuracy']}% ({overall['correct']}/{overall['total_evaluated']})")
+    logger.info(
+        f"  MCQ Acc: {overall['accuracy']}% ({overall['correct']}/{overall['total_evaluated']})"
+    )
     logger.info(f"  Acc@.5IoU: {overall['acc_at_iou50']}%")
     logger.info(f"  Avg IoU: {overall['avg_iou']} (MCQ correct only)")
 
-    hops = sorted(set(r.get('hop', '') for r in valid_results if r.get('hop')))
-    views = sorted(set(r.get('view', '') for r in valid_results if r.get('view')))
+    hops = sorted(set(r.get("hop", "") for r in valid_results if r.get("hop")))
+    views = sorted(set(r.get("view", "") for r in valid_results if r.get("view")))
     if not hops:
         return overall
 
     logger.info("-" * 60)
     logger.info(f"  {'Split':<20} {'N':>6} {'MCQ Acc':>9} {'Acc@.5IoU':>10} {'Avg IoU':>9}")
     for hop in hops:
-        hop_results = [r for r in valid_results if r.get('hop') == hop]
+        hop_results = [r for r in valid_results if r.get("hop") == hop]
         m = calculate_full_metrics(hop_results)
-        logger.info(f"  {hop:<20} {m['total_evaluated']:>6} {m['accuracy']:>8.2f}% {m['acc_at_iou50']:>9.2f}% {m['avg_iou']:>8.4f}")
+        logger.info(
+            f"  {hop:<20} {m['total_evaluated']:>6} {m['accuracy']:>8.2f}% {m['acc_at_iou50']:>9.2f}% {m['avg_iou']:>8.4f}"
+        )
         for view in views:
-            hv_results = [r for r in hop_results if r.get('view') == view]
+            hv_results = [r for r in hop_results if r.get("view") == view]
             if not hv_results:
                 continue
             hv = calculate_full_metrics(hv_results)
-            logger.info(f"    {hop}/{view:<16} {hv['total_evaluated']:>6} {hv['accuracy']:>8.2f}% {hv['acc_at_iou50']:>9.2f}% {hv['avg_iou']:>8.4f}")
+            logger.info(
+                f"    {hop}/{view:<16} {hv['total_evaluated']:>6} {hv['accuracy']:>8.2f}% {hv['acc_at_iou50']:>9.2f}% {hv['avg_iou']:>8.4f}"
+            )
 
     return overall
 
@@ -338,9 +371,15 @@ def log_metrics_table(logger, valid_results: list) -> dict:
 # Sampling Parameters
 # =============================================================================
 
-def build_sampling_params(model_path: str, max_tokens: int, greedy: bool,
-                           temperature_override: Optional[float], seed: Optional[int],
-                           logger: logging.Logger) -> SamplingParams:
+
+def build_sampling_params(
+    model_path: str,
+    max_tokens: int,
+    greedy: bool,
+    temperature_override: Optional[float],
+    seed: Optional[int],
+    logger: logging.Logger,
+) -> SamplingParams:
     """Priority: --greedy > --temperature > generation_config.json > fallback (t=0)."""
     params = {}
     if greedy:
@@ -350,7 +389,11 @@ def build_sampling_params(model_path: str, max_tokens: int, greedy: bool,
         params["temperature"] = temperature_override
         logger.info(f"Sampling: --temperature {temperature_override} (CLI override)")
     else:
-        config_path = os.path.join(model_path, "generation_config.json") if os.path.isdir(model_path) else None
+        config_path = (
+            os.path.join(model_path, "generation_config.json")
+            if os.path.isdir(model_path)
+            else None
+        )
         config = None
         if config_path and os.path.isfile(config_path):
             with open(config_path) as f:
@@ -377,18 +420,21 @@ def build_sampling_params(model_path: str, max_tokens: int, greedy: bool,
 # Logging
 # =============================================================================
 
+
 def setup_logger(log_file: str) -> logging.Logger:
-    logger = logging.getLogger('benchmark_qwen_vllm')
+    logger = logging.getLogger("benchmark_qwen_vllm")
     logger.setLevel(logging.DEBUG)
     logger.handlers = []
 
-    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    file_handler.setFormatter(
+        logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    )
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s', datefmt='%H:%M:%S'))
+    console_handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", datefmt="%H:%M:%S"))
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
@@ -398,6 +444,7 @@ def setup_logger(log_file: str) -> logging.Logger:
 # =============================================================================
 # Main Benchmark Loop
 # =============================================================================
+
 
 def run_benchmark(
     json_path: str,
@@ -418,7 +465,7 @@ def run_benchmark(
     enforce_eager: bool = False,
     max_num_seqs: Optional[int] = None,
 ) -> dict:
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.dirname(output_path)
     log_file = os.path.join(output_dir, f"log_{timestamp}.log")
     logger = setup_logger(log_file)
@@ -436,17 +483,24 @@ def run_benchmark(
     logger.info("Loading vLLM model...")
     start_load = datetime.now()
     llm_kwargs = dict(
-        model=model_path, dtype="bfloat16", max_model_len=max_model_len,
-        gpu_memory_utilization=gpu_memory_utilization, tensor_parallel_size=tensor_parallel_size,
-        trust_remote_code=True, allowed_local_media_path="/", enforce_eager=enforce_eager,
+        model=model_path,
+        dtype="bfloat16",
+        max_model_len=max_model_len,
+        gpu_memory_utilization=gpu_memory_utilization,
+        tensor_parallel_size=tensor_parallel_size,
+        trust_remote_code=True,
+        allowed_local_media_path="/",
+        enforce_eager=enforce_eager,
     )
     if max_num_seqs is not None:
         llm_kwargs["max_num_seqs"] = max_num_seqs
     llm = LLM(**llm_kwargs)
-    sampling_params = build_sampling_params(model_path, max_new_tokens, greedy, temperature_override, seed, logger)
+    sampling_params = build_sampling_params(
+        model_path, max_new_tokens, greedy, temperature_override, seed, logger
+    )
     logger.info(f"vLLM model loaded in {(datetime.now() - start_load).total_seconds():.1f}s")
 
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     total_count = len(data)
     if test_samples is not None:
@@ -458,10 +512,15 @@ def run_benchmark(
     existing_results = None
     failed_indices = None
     if resume and os.path.exists(output_path):
-        with open(output_path, 'r', encoding='utf-8') as f:
+        with open(output_path, "r", encoding="utf-8") as f:
             existing_results = json.load(f)
-        failed_indices = {i for i, r in enumerate(existing_results)
-                           if r is None or 'error' in r or not is_valid_prediction(r.get('prediction'), r.get('pred_bbox'))}
+        failed_indices = {
+            i
+            for i, r in enumerate(existing_results)
+            if r is None
+            or "error" in r
+            or not is_valid_prediction(r.get("prediction"), r.get("pred_bbox"))
+        }
         logger.info(f"Resume mode: {len(failed_indices)} failed samples to retry")
 
     results = existing_results if existing_results else [None] * len(data)
@@ -472,10 +531,17 @@ def run_benchmark(
         if failed_indices is not None and idx not in failed_indices:
             continue
 
-        image_path = os.path.join(image_root, item.get('image_path', '').lstrip('/\\'))
+        image_path = os.path.join(image_root, item.get("image_path", "").lstrip("/\\"))
         if not os.path.exists(image_path):
-            results[idx] = {**item, 'prediction': None, 'pred_bbox': None, 'iou': None,
-                             'score': False, 'raw_response': '', 'error': f"Image not found: {image_path}"}
+            results[idx] = {
+                **item,
+                "prediction": None,
+                "pred_bbox": None,
+                "iou": None,
+                "score": False,
+                "raw_response": "",
+                "error": f"Image not found: {image_path}",
+            }
             logger.warning(f"[{idx}] Image not found: {image_path}")
             continue
 
@@ -483,16 +549,28 @@ def run_benchmark(
             img_width, img_height = get_image_dimensions(image_path)
             image_dims[idx] = (img_width, img_height)
         except Exception as e:
-            results[idx] = {**item, 'prediction': None, 'pred_bbox': None, 'iou': None,
-                             'score': False, 'raw_response': '', 'error': f"Failed to read image: {e}"}
+            results[idx] = {
+                **item,
+                "prediction": None,
+                "pred_bbox": None,
+                "iou": None,
+                "score": False,
+                "raw_response": "",
+                "error": f"Failed to read image: {e}",
+            }
             continue
 
-        prompt = build_prompt(item.get('question', ''))
+        prompt = build_prompt(item.get("question", ""))
         real_image_path = os.path.realpath(image_path)
-        messages = [{"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": f"file://{real_image_path}"}},
-            {"type": "text", "text": prompt},
-        ]}]
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"file://{real_image_path}"}},
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ]
         process_indices.append(idx)
         conversations.append(messages)
 
@@ -503,22 +581,26 @@ def run_benchmark(
     retry_counts = {idx: 0 for idx in process_indices}
 
     def _save_and_log(label: str):
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
         completed = [r for r in results if r is not None]
         m = calculate_full_metrics(completed)
-        logger.info(f"  {label} | Saved | Acc: {m['accuracy']}% | IoU: {m['avg_iou']:.3f} | "
-                    f"Acc@.5IoU: {m['acc_at_iou50']}% | Done: {len(completed)}/{len(data)}")
+        logger.info(
+            f"  {label} | Saved | Acc: {m['accuracy']}% | IoU: {m['avg_iou']:.3f} | "
+            f"Acc@.5IoU: {m['acc_at_iou50']}% | Done: {len(completed)}/{len(data)}"
+        )
 
     for attempt in range(max_retries):
         if not pending:
             break
         num_chunks = (len(pending) + batch_size - 1) // batch_size
-        logger.info(f"Round {attempt + 1}/{max_retries}: {len(pending)} samples in {num_chunks} chunks")
+        logger.info(
+            f"Round {attempt + 1}/{max_retries}: {len(pending)} samples in {num_chunks} chunks"
+        )
         next_pending = []
 
         for chunk_start in range(0, len(pending), batch_size):
-            chunk = pending[chunk_start:chunk_start + batch_size]
+            chunk = pending[chunk_start : chunk_start + batch_size]
             chunk_num = chunk_start // batch_size + 1
             chunk_indices = [p[0] for p in chunk]
             chunk_convos = [p[1] for p in chunk]
@@ -530,16 +612,23 @@ def run_benchmark(
                 idx = chunk_indices[i]
                 item = data[idx]
                 raw_response = output.outputs[0].text if output.outputs else ""
-                answer = item.get('answer', '')
+                answer = item.get("answer", "")
                 prediction, pred_bbox = parse_response(raw_response)
                 img_width, img_height = image_dims[idx]
 
                 if is_valid_prediction(prediction, pred_bbox) or attempt == max_retries - 1:
-                    gt_bbox = item.get('bbox')
+                    gt_bbox = item.get("bbox")
                     iou = calculate_iou(gt_bbox, pred_bbox, img_width, img_height)
-                    results[idx] = {**item, 'answer': answer, 'prediction': prediction, 'pred_bbox': pred_bbox,
-                                     'iou': iou, 'score': compute_score(prediction, answer),
-                                     'raw_response': raw_response, 'retry_count': retry_counts[idx]}
+                    results[idx] = {
+                        **item,
+                        "answer": answer,
+                        "prediction": prediction,
+                        "pred_bbox": pred_bbox,
+                        "iou": iou,
+                        "score": compute_score(prediction, answer),
+                        "raw_response": raw_response,
+                        "retry_count": retry_counts[idx],
+                    }
                 else:
                     retry_counts[idx] += 1
                     next_pending.append((idx, chunk_convos[i]))
@@ -550,26 +639,39 @@ def run_benchmark(
 
     elapsed = (datetime.now() - start_time).total_seconds()
     valid_results = [r for r in results if r is not None]
-    success_count = sum(1 for r in valid_results if r.get('prediction') is not None and 'error' not in r)
+    success_count = sum(
+        1 for r in valid_results if r.get("prediction") is not None and "error" not in r
+    )
     error_count = len(valid_results) - success_count
 
     logger.info("-" * 60)
     logger.info("Benchmark Complete!")
-    logger.info(f"  Success: {success_count} | Errors: {error_count} | "
-                f"Elapsed: {elapsed:.1f}s ({elapsed / len(data):.2f}s/sample)")
+    logger.info(
+        f"  Success: {success_count} | Errors: {error_count} | "
+        f"Elapsed: {elapsed:.1f}s ({elapsed / len(data):.2f}s/sample)"
+    )
     logger.info("-" * 60)
     overall = log_metrics_table(logger, valid_results)
     logger.info(f"Results saved to: {output_path}")
     logger.info(f"Log saved to: {log_file}")
 
-    return {**overall, 'mcq_accuracy': overall['accuracy'], 'mcq_correct': overall['correct'],
-            'mcq_evaluated': overall['total_evaluated'], 'total': len(data), 'success': success_count,
-            'errors': error_count, 'elapsed_time': round(elapsed, 1), 'output_path': output_path, 'log_path': log_file}
+    return {
+        **overall,
+        "mcq_accuracy": overall["accuracy"],
+        "mcq_correct": overall["correct"],
+        "mcq_evaluated": overall["total_evaluated"],
+        "total": len(data),
+        "success": success_count,
+        "errors": error_count,
+        "elapsed_time": round(elapsed, 1),
+        "output_path": output_path,
+        "log_path": log_file,
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='MultihopSpatial Benchmark - Qwen3-VL (vLLM backend)',
+        description="MultihopSpatial Benchmark - Qwen3-VL (vLLM backend)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -577,29 +679,49 @@ Examples:
   python benchmark_qwen_vllm.py --output results_qwen3vl_4b
   python benchmark_qwen_vllm.py --model_path /path/to/32B --gpus 0,1,2,3,4,5,6,7 --max_model_len 32768
   python benchmark_qwen_vllm.py --greedy
-        """
+        """,
     )
-    parser.add_argument('--model_path', type=str, default=DEFAULT_MODEL_PATH,
-                        help=f'HF Hub repo id or local path to a Qwen3-VL checkpoint (default: {DEFAULT_MODEL_PATH})')
-    parser.add_argument('--data_dir', type=str, default=DEFAULT_DATA_DIR,
-                        help=f'Local cache dir for the auto-downloaded dataset (default: {DEFAULT_DATA_DIR})')
-    parser.add_argument('--output', type=str, default=None,
-                        help='Output directory for results.json + log (default: auto-generated)')
-    parser.add_argument('--max_model_len', type=int, default=32768)
-    parser.add_argument('--gpus', type=str, default=None,
-                        help='Comma-separated GPU ids, e.g. "0,1,2,3". Sets CUDA_VISIBLE_DEVICES and tensor_parallel_size.')
-    parser.add_argument('--gpu_memory_utilization', type=float, default=0.9)
-    parser.add_argument('--tensor_parallel_size', type=int, default=None)
-    parser.add_argument('--max_new_tokens', type=int, default=8192)
-    parser.add_argument('--temperature', type=float, default=None, help='Explicit sampling temperature override')
-    parser.add_argument('--greedy', action='store_true', help='Force greedy decoding (temperature=0)')
-    parser.add_argument('--seed', type=int, default=None)
-    parser.add_argument('--test_samples', type=int, default=None)
-    parser.add_argument('--max_retries', type=int, default=3)
-    parser.add_argument('--batch_size', type=int, default=100)
-    parser.add_argument('--enforce_eager', action='store_true')
-    parser.add_argument('--max_num_seqs', type=int, default=None)
-    parser.add_argument('--resume', action='store_true')
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=DEFAULT_MODEL_PATH,
+        help=f"HF Hub repo id or local path to a Qwen3-VL checkpoint (default: {DEFAULT_MODEL_PATH})",
+    )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default=DEFAULT_DATA_DIR,
+        help=f"Local cache dir for the auto-downloaded dataset (default: {DEFAULT_DATA_DIR})",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Output directory for results.json + log (default: auto-generated)",
+    )
+    parser.add_argument("--max_model_len", type=int, default=32768)
+    parser.add_argument(
+        "--gpus",
+        type=str,
+        default=None,
+        help='Comma-separated GPU ids, e.g. "0,1,2,3". Sets CUDA_VISIBLE_DEVICES and tensor_parallel_size.',
+    )
+    parser.add_argument("--gpu_memory_utilization", type=float, default=0.9)
+    parser.add_argument("--tensor_parallel_size", type=int, default=None)
+    parser.add_argument("--max_new_tokens", type=int, default=8192)
+    parser.add_argument(
+        "--temperature", type=float, default=None, help="Explicit sampling temperature override"
+    )
+    parser.add_argument(
+        "--greedy", action="store_true", help="Force greedy decoding (temperature=0)"
+    )
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--test_samples", type=int, default=None)
+    parser.add_argument("--max_retries", type=int, default=3)
+    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--enforce_eager", action="store_true")
+    parser.add_argument("--max_num_seqs", type=int, default=None)
+    parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
     if args.gpus is not None:
@@ -612,8 +734,8 @@ Examples:
     json_path, image_root = download_dataset(args.data_dir)
 
     if args.output is None:
-        model_safe = os.path.basename(args.model_path).replace('/', '_')
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        model_safe = os.path.basename(args.model_path).replace("/", "_")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = f"result/{model_safe}_{ts}"
     else:
         output_dir = args.output
@@ -621,17 +743,30 @@ Examples:
     args.output = os.path.join(output_dir, "results.json")
 
     stats = run_benchmark(
-        json_path=json_path, image_root=image_root, output_path=args.output, model_path=args.model_path,
-        max_model_len=args.max_model_len, gpu_memory_utilization=args.gpu_memory_utilization,
-        tensor_parallel_size=args.tensor_parallel_size, max_new_tokens=args.max_new_tokens,
-        greedy=args.greedy, temperature_override=args.temperature, seed=args.seed,
-        test_samples=args.test_samples, max_retries=args.max_retries, resume=args.resume,
-        batch_size=args.batch_size, enforce_eager=args.enforce_eager, max_num_seqs=args.max_num_seqs,
+        json_path=json_path,
+        image_root=image_root,
+        output_path=args.output,
+        model_path=args.model_path,
+        max_model_len=args.max_model_len,
+        gpu_memory_utilization=args.gpu_memory_utilization,
+        tensor_parallel_size=args.tensor_parallel_size,
+        max_new_tokens=args.max_new_tokens,
+        greedy=args.greedy,
+        temperature_override=args.temperature,
+        seed=args.seed,
+        test_samples=args.test_samples,
+        max_retries=args.max_retries,
+        resume=args.resume,
+        batch_size=args.batch_size,
+        enforce_eager=args.enforce_eager,
+        max_num_seqs=args.max_num_seqs,
     )
 
     print("\n" + "=" * 60)
     print("Benchmark Completed!")
-    print(f"Overall MCQ Acc: {stats['mcq_accuracy']}% ({stats['mcq_correct']}/{stats['mcq_evaluated']})")
+    print(
+        f"Overall MCQ Acc: {stats['mcq_accuracy']}% ({stats['mcq_correct']}/{stats['mcq_evaluated']})"
+    )
     print(f"Overall Avg IoU: {stats['avg_iou']} (MCQ correct only)")
     print(f"Overall Acc@.5IoU: {stats['acc_at_iou50']}%")
     print(f"Elapsed Time: {stats['elapsed_time']}s")
@@ -639,5 +774,5 @@ Examples:
     print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

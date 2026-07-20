@@ -1,20 +1,19 @@
 import copy
 import os
 from typing import Dict
+
 import torch
 import transformers
 import ujson as json
-from torch.utils.data import Dataset
-
-from src.params import DataArguments
 from src.constants import (
-    DEFAULT_IM_START_TOKEN,
     DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
     SYSTEM_MESSAGE,
 )
+from src.params import DataArguments
+from torch.utils.data import Dataset
 
-from .data_utils import get_image_info, get_video_info, llava_to_openai, BBOX_INSTRUCTION_PATTERN
-
+from .data_utils import BBOX_INSTRUCTION_PATTERN, get_image_info, get_video_info, llava_to_openai
 
 # MSR Response Format Template (default: MCQ + BBox)
 MSR_RESPONSE_FORMAT = """
@@ -44,7 +43,7 @@ def normalize_bbox_to_1000(bbox, image_resolution):
     Returns:
         [x1, y1, x2, y2] normalized to 0-1000 scale
     """
-    img_w, img_h = map(int, image_resolution.split('x'))
+    img_w, img_h = map(int, image_resolution.split("x"))
     x, y, w, h = bbox
 
     # Convert to x1, y1, x2, y2 format
@@ -64,6 +63,7 @@ def normalize_bbox_to_1000(bbox, image_resolution):
     y2_norm = max(0, min(1000, y2_norm))
 
     return [x1_norm, y1_norm, x2_norm, y2_norm]
+
 
 class GRPODataset(Dataset):
     """Dataset for DPO training"""
@@ -109,7 +109,7 @@ class GRPODataset(Dataset):
 
     def __len__(self):
         return len(self.list_data_dict)
-    
+
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         sources = self.list_data_dict[i]
 
@@ -127,7 +127,7 @@ class GRPODataset(Dataset):
 
         if "image" in sources:
             videos = None
-            
+
             image_files = sources["image"]
             image_folder = self.data_args.image_folder
 
@@ -135,7 +135,7 @@ class GRPODataset(Dataset):
                 image_files = [image_files]
 
             images = []
-            
+
             image_folder_fallback = self.data_args.image_folder_fallback
 
             for image_file in image_files:
@@ -143,19 +143,21 @@ class GRPODataset(Dataset):
                     if not image_file.startswith("http"):
                         image_file = os.path.join(image_folder, image_file)
                         if not os.path.exists(image_file) and image_folder_fallback:
-                            image_file = os.path.join(image_folder_fallback, os.path.basename(image_file))
+                            image_file = os.path.join(
+                                image_folder_fallback, os.path.basename(image_file)
+                            )
                 image_input = get_image_info(
-                        image_file, 
-                        self.image_min_pixel, 
-                        self.image_max_pixel, 
-                        self.image_resized_w, 
-                        self.image_resized_h, 
-                        self.image_patch_size
-                    )
+                    image_file,
+                    self.image_min_pixel,
+                    self.image_max_pixel,
+                    self.image_resized_w,
+                    self.image_resized_h,
+                    self.image_patch_size,
+                )
                 images.append(image_input)
         elif "video" in sources:
             is_video = True
-            images=None
+            images = None
 
             video_files = sources["video"]
             video_folder = self.data_args.image_folder
@@ -169,30 +171,30 @@ class GRPODataset(Dataset):
                     if not video_file.startswith("http"):
                         video_file = os.path.join(video_folder, video_file)
                 video_input, video_kwargs = get_video_info(
-                    video_file, 
-                    self.video_min_pixel, 
-                    self.video_max_pixel, 
-                    self.video_resized_w, 
-                    self.video_resized_h, 
+                    video_file,
+                    self.video_min_pixel,
+                    self.video_max_pixel,
+                    self.video_resized_w,
+                    self.video_resized_h,
                     self.data_args.fps,
                     self.image_patch_size,
-                    return_video_metadata=self.return_video_metadata
+                    return_video_metadata=self.return_video_metadata,
                 )
                 videos.append(video_input)
         else:
-            images=None
-            videos=None
+            images = None
+            videos = None
 
-        conversations = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video))
+        conversations = copy.deepcopy(llava_to_openai(sources["conversations"], is_video=is_video))
 
         user_input = conversations[0]
         gpt_response = conversations[1]
 
         # MSR-specific: Add response format instructions
-        user_content = user_input['content']
+        user_content = user_input["content"]
         if self.reward_type == "mcq-only":
             # MCQ-only: strip bbox instruction from query, add MCQ-only format, skip bbox data
-            user_content = BBOX_INSTRUCTION_PATTERN.sub('', user_content)
+            user_content = BBOX_INSTRUCTION_PATTERN.sub("", user_content)
             user_content = user_content + MCQ_ONLY_RESPONSE_FORMAT
             bbox_normalized = None
         elif bbox_normalized is not None:
@@ -202,7 +204,7 @@ class GRPODataset(Dataset):
         user_message = f"{DEFAULT_IM_START_TOKEN}{user_input['role']}\n{user_content}{DEFAULT_IM_END_TOKEN}\n{DEFAULT_IM_START_TOKEN}{gpt_response['role']}\n"
 
         user_prompt = system_message + user_message
-        assistant_prompt = gpt_response['content']
+        assistant_prompt = gpt_response["content"]
 
         data_dict = dict(
             prompt=user_prompt,
@@ -223,13 +225,16 @@ class GRPODataset(Dataset):
             data_dict["video_kwargs"] = video_kwargs
 
         return data_dict
-    
+
+
 def make_grpo_data_module(model_id, processor, data_args, reward_type="simple_sum"):
     """Make dataset and collator for supervised fine-tuning."""
     grpo_dataset = GRPODataset(
-        data_path=data_args.data_path, processor=processor, data_args=data_args, model_id=model_id,
+        data_path=data_args.data_path,
+        processor=processor,
+        data_args=data_args,
+        model_id=model_id,
         reward_type=reward_type,
     )
 
-    return dict(train_dataset=grpo_dataset,
-                eval_dataset=None)
+    return dict(train_dataset=grpo_dataset, eval_dataset=None)

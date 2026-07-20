@@ -1,0 +1,33 @@
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E501 (line too long) is handled by black; import ordering is delegated to isort
+# (the standalone tool), so ruff's own "I" rules are left out to avoid the two
+# disagreeing. E402 in train_grpo.py is intentional (a DeepSpeed runtime patch
+# must run before the heavy imports it guards) and ignored per-file below.
+select = ["E", "F", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# train_grpo.py applies a DeepSpeed monkey-patch at module load, before importing
+# the modules that depend on it — imports genuinely cannot all sit at the top.
+"train/src/train/train_grpo.py" = ["E402"]
+
+[tool.bandit]
+# All findings in this repo are false positives or intentional design:
+#   B101 - asserts guard internal invariants (norm_type==2, padding side), not user input
+#   B105 - constants.py defines chat-template tokens (e.g. "<|im_start|>"), not secrets
+#   B404/B603/B607 - benchmark_qwen_vllm.py shells out to `nvidia-smi`/vLLM, no user input
+#   B110 - a best-effort GPU probe that is allowed to fail silently
+#   B615 - HF downloads intentionally track the latest public dataset/model revision
+skips = ["B101", "B105", "B404", "B603", "B607", "B110", "B615"]

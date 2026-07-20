@@ -11,4 +11,10 @@ VISION_END_TOKEN = "<|vision_end|>"
 
 SYSTEM_MESSAGE = "You are a helpful assistant."
 
-MULTIMODAL_KEYWORDS = ["pixel_values", "image_grid_thw", "video_grid_thw", "pixel_values_videos", "second_per_grid_ts"]
+MULTIMODAL_KEYWORDS = [
+    "pixel_values",
+    "image_grid_thw",
+    "video_grid_thw",
+    "pixel_values_videos",
+    "second_per_grid_ts",
+]

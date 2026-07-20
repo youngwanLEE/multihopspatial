@@ -40,15 +40,16 @@ import argparse
 import os
 import re
 import time
+
 import torch
 from huggingface_hub import hf_hub_download
 from safetensors import safe_open
 from safetensors.torch import save_file
 from transformers import (
-    AutoProcessor,
     AutoConfig,
-    Qwen2VLForConditionalGeneration,
+    AutoProcessor,
     Qwen2_5_VLForConditionalGeneration,
+    Qwen2VLForConditionalGeneration,
     Qwen3VLForConditionalGeneration,
 )
 
@@ -120,14 +121,14 @@ def _ensure_safetensors(model_path: str) -> str | None:
     if not os.path.exists(bin_path):
         return None
 
-    print(f"  Converting .bin -> .safetensors (one-time)...")
+    print("  Converting .bin -> .safetensors (one-time)...")
     t0 = time.time()
     try:
         sd = torch.load(bin_path, map_location="cpu", weights_only=True)
     except RuntimeError as e:
         print(f"  WARNING: Failed to load non_lora_state_dict.bin: {e}")
-        print(f"  The file may be corrupted (e.g. truncated during save).")
-        print(f"  Will skip non-LoRA weights and use base model weights instead.")
+        print("  The file may be corrupted (e.g. truncated during save).")
+        print("  Will skip non-LoRA weights and use base model weights instead.")
         return None
     save_file(sd, st_path)
     del sd
@@ -148,7 +149,7 @@ def load_non_lora_weights(model_path: str, skip_base_layer: bool = True) -> dict
     st_path = _ensure_safetensors(model_path)
 
     if st_path is None:
-        print(f"  No valid non-LoRA weights found. Using base model weights as-is.")
+        print("  No valid non-LoRA weights found. Using base model weights as-is.")
         return {}
 
     filtered = {}
@@ -190,8 +191,7 @@ def get_base_key(lora_key: str) -> str:
     return key
 
 
-def merge_lora_inplace(model, lora_weights: dict,
-                       lora_alpha: int, lora_rank: int):
+def merge_lora_inplace(model, lora_weights: dict, lora_alpha: int, lora_rank: int):
     """Merge LoRA weights directly into model parameters (no copy).
 
     Avoids model.state_dict() which doubles memory usage.
@@ -282,7 +282,7 @@ def merge_grpo_lora(args):
 
     # 2. Load base model
     t0 = time.time()
-    print(f"\n[1/5] Loading base model...")
+    print("\n[1/5] Loading base model...")
     model_cls = resolve_model_class(model_type)
     if model_cls is None:
         raise ValueError(f"Unsupported model type: {model_type}")
@@ -298,19 +298,19 @@ def merge_grpo_lora(args):
 
     # 3. Load & apply non-LoRA weights (vision, merger, embed, lm_head)
     t0 = time.time()
-    print(f"\n[2/5] Loading non-LoRA weights...")
+    print("\n[2/5] Loading non-LoRA weights...")
     non_lora_weights = load_non_lora_weights(model_path, skip_base_layer=True)
     print(f"  Loaded {len(non_lora_weights)} tensors in {time.time() - t0:.1f}s")
 
     t0 = time.time()
-    print(f"\n[3/5] Applying non-LoRA weights to base model...")
+    print("\n[3/5] Applying non-LoRA weights to base model...")
     model.load_state_dict(non_lora_weights, strict=False)
     del non_lora_weights
     print(f"  Done in {time.time() - t0:.1f}s")
 
     # 4. Load LoRA weights & merge in-place on model parameters
     t0 = time.time()
-    print(f"\n[4/5] Loading LoRA weights & merging in-place...")
+    print("\n[4/5] Loading LoRA weights & merging in-place...")
     lora_weights = load_lora_weights(model_path)
     print(f"  Loaded {len(lora_weights)} LoRA tensors")
 
@@ -330,6 +330,7 @@ def merge_grpo_lora(args):
     # Newer transformers adds text_config section which older vLLM may not handle.
     # model_base may be a local directory or a Hub repo id, so resolve both.
     import shutil
+
     base_config_path = os.path.join(model_base, "config.json")
     if not os.path.exists(base_config_path):
         try:
@@ -340,7 +341,7 @@ def merge_grpo_lora(args):
 
     if base_config_path:
         shutil.copy2(base_config_path, os.path.join(save_path, "config.json"))
-        print(f"  Copied base model config.json for vLLM compatibility")
+        print("  Copied base model config.json for vLLM compatibility")
 
     print(f"  Done in {time.time() - t0:.1f}s")
 
@@ -353,20 +354,27 @@ def merge_grpo_lora(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Merge LoRA weights into base model (GRPO/SFT)")
-    parser.add_argument("--model-path", type=str, required=True,
-                        help="Path to LoRA checkpoint (GRPO or SFT)")
-    parser.add_argument("--model-base", type=str, required=True,
-                        help="Path to base model")
-    parser.add_argument("--save-model-path", type=str, required=True,
-                        help="Path to save merged model")
-    parser.add_argument("--lora-alpha", type=int, default=64,
-                        help="LoRA alpha (default: 64)")
-    parser.add_argument("--lora-rank", type=int, default=64,
-                        help="LoRA rank (default: 64)")
-    parser.add_argument("--safe-serialization", action="store_true", default=True,
-                        help="Save in safetensors format (default: True)")
-    parser.add_argument("--no-safe-serialization", action="store_false", dest="safe_serialization",
-                        help="Save in PyTorch bin format instead of safetensors")
+    parser.add_argument(
+        "--model-path", type=str, required=True, help="Path to LoRA checkpoint (GRPO or SFT)"
+    )
+    parser.add_argument("--model-base", type=str, required=True, help="Path to base model")
+    parser.add_argument(
+        "--save-model-path", type=str, required=True, help="Path to save merged model"
+    )
+    parser.add_argument("--lora-alpha", type=int, default=64, help="LoRA alpha (default: 64)")
+    parser.add_argument("--lora-rank", type=int, default=64, help="LoRA rank (default: 64)")
+    parser.add_argument(
+        "--safe-serialization",
+        action="store_true",
+        default=True,
+        help="Save in safetensors format (default: True)",
+    )
+    parser.add_argument(
+        "--no-safe-serialization",
+        action="store_false",
+        dest="safe_serialization",
+        help="Save in PyTorch bin format instead of safetensors",
+    )
 
     args = parser.parse_args()
     merge_grpo_lora(args)

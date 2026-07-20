@@ -1,13 +1,15 @@
-import re
 import os
+import re
 
 # Global debug mode flag - can be set via environment variable or kwargs
 DEBUG_MODE = os.environ.get("MSR_DEBUG_MODE", "0") == "1"
+
 
 def set_debug_mode(enabled: bool):
     """Set global debug mode for MSR reward functions."""
     global DEBUG_MODE
     DEBUG_MODE = enabled
+
 
 def _debug_print(*args, **kwargs):
     """Print only when debug mode is enabled."""
@@ -18,6 +20,7 @@ def _debug_print(*args, **kwargs):
 # ============================================================================
 # Thinking Model Support
 # ============================================================================
+
 
 def extract_answer_from_thinking(completion: str) -> str:
     """
@@ -55,7 +58,7 @@ def extract_answer_from_thinking(completion: str) -> str:
         if answer_matches:
             # Use the last Answer: match as the start of the answer section
             last_match = answer_matches[-1]
-            return completion[last_match.start():].strip()
+            return completion[last_match.start() :].strip()
         # No Answer: found in truncated thinking - return empty to signal format failure
         return ""
 
@@ -64,9 +67,7 @@ def extract_answer_from_thinking(completion: str) -> str:
 
 
 def preprocess_completions_for_thinking_model(
-    completions: list[str],
-    model_id: str = "",
-    debug: bool = False
+    completions: list[str], model_id: str = "", debug: bool = False
 ) -> list[str]:
     """
     Preprocess completions for Thinking models by extracting answer portions.
@@ -99,7 +100,11 @@ def preprocess_completions_for_thinking_model(
             _debug_print(f"  Raw completion (first 300 chars): {repr(completion)}")
             _debug_print(f"  Has <think>: {'<think>' in completion}")
             _debug_print(f"  Has </think>: {'</think>' in completion}")
-            _debug_print(f"  Extracted answer: {repr(extracted[:200])}..." if len(extracted) > 200 else f"  Extracted answer: {repr(extracted)}")
+            _debug_print(
+                f"  Extracted answer: {repr(extracted[:200])}..."
+                if len(extracted) > 200
+                else f"  Extracted answer: {repr(extracted)}"
+            )
 
     return processed
 
@@ -107,6 +112,7 @@ def preprocess_completions_for_thinking_model(
 # ============================================================================
 # MSR (Multi-hop Spatial Reasoning) Reward Functions
 # ============================================================================
+
 
 def compute_giou(box1, box2):
     """
@@ -120,10 +126,18 @@ def compute_giou(box1, box2):
         GIoU value in [-1, 1]
     """
     # Ensure valid box format (x1 < x2, y1 < y2)
-    box1 = [min(box1[0], box1[2]), min(box1[1], box1[3]),
-            max(box1[0], box1[2]), max(box1[1], box1[3])]
-    box2 = [min(box2[0], box2[2]), min(box2[1], box2[3]),
-            max(box2[0], box2[2]), max(box2[1], box2[3])]
+    box1 = [
+        min(box1[0], box1[2]),
+        min(box1[1], box1[3]),
+        max(box1[0], box1[2]),
+        max(box1[1], box1[3]),
+    ]
+    box2 = [
+        min(box2[0], box2[2]),
+        min(box2[1], box2[3]),
+        max(box2[0], box2[2]),
+        max(box2[1], box2[3]),
+    ]
 
     # Intersection
     x1_inter = max(box1[0], box2[0])
@@ -188,7 +202,11 @@ def msr_format_reward(completions, **kwargs):
 
         if debug:
             _debug_print(f"=== msr_format_reward [{i}] ===")
-            _debug_print(f"  Raw completion: {repr(completion[:500])}..." if len(completion) > 500 else f"  Raw completion: {repr(completion)}")
+            _debug_print(
+                f"  Raw completion: {repr(completion[:500])}..."
+                if len(completion) > 500
+                else f"  Raw completion: {repr(completion)}"
+            )
             _debug_print(f"  Format matched: {bool(match)}")
             _debug_print(f"  Reward: {reward}")
 
@@ -361,6 +379,7 @@ def msr_truncation_reward(completions, raw_completions=None, penalty_value=-1.0,
 # by load_reward_funcs(). They are explicitly loaded by train_grpo.py
 # when --reward_type mcq-only is specified.
 
+
 def msr_format_mcq_only(completions, **kwargs):
     """
     MCQ-Only Format Reward: Check if completion has valid MCQ answer format.
@@ -384,7 +403,11 @@ def msr_format_mcq_only(completions, **kwargs):
 
         if debug:
             _debug_print(f"=== msr_format_mcq_only [{i}] ===")
-            _debug_print(f"  Raw completion: {repr(completion[:500])}..." if len(completion) > 500 else f"  Raw completion: {repr(completion)}")
+            _debug_print(
+                f"  Raw completion: {repr(completion[:500])}..."
+                if len(completion) > 500
+                else f"  Raw completion: {repr(completion)}"
+            )
             _debug_print(f"  Format matched: {bool(match)}")
             _debug_print(f"  Reward: {reward}")
 
