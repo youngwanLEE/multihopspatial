@@ -21,6 +21,6 @@ vllm==0.11.0
 
 # Commercial API scripts (benchmark_claude.py / benchmark_gpt.py / benchmark_gemini.py)
 # only need huggingface_hub, pillow, tqdm above, plus the SDK for the provider you're using:
-anthropic==0.85.0    # benchmark_claude.py
-openai==2.24.0       # benchmark_gpt.py
-google-genai==1.73.1 # benchmark_gemini.py
+anthropic==0.117.0   # benchmark_claude.py
+openai==2.21.0       # benchmark_gpt.py
+google-genai==2.12.1 # benchmark_gemini.py
