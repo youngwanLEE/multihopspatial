@@ -16,7 +16,7 @@
 > - [Model Zoo](#model-zoo) — released 4B / 8B / 32B checkpoints
 > - [Benchmark](#benchmark) — [results](#results) · [reproducibility](#a-note-on-reproducibility) · [commercial APIs](#commercial-api-models-claude-gpt-gemini)
 > - [Training](#training) — GRPO post-training, one command
-> - [Requirements](#requirements) · [Citation](#citation)
+> - [Requirements](#requirements) · [Citation](#citation) · [Acknowledgements](#acknowledgements) · [License](#license)
 
 ## Overview
 
@@ -215,3 +215,21 @@ pip install flash-attn==2.7.2.post1 --no-build-isolation
   year={2026}
 }
 ```
+
+## Acknowledgements
+
+This work was supported by Institute of Information & communications Technology
+Planning & Evaluation (IITP) grant funded by the Korea government (MSIT)
+(No. 2022-0-00871, Development of AI Autonomy and Knowledge Enhancement for AI
+Agent Collaboration, 90%) and (No. 2019-0-00075, Artificial Intelligence Graduate
+School Program (KAIST), 10%).
+
+Our code builds on the following open-source projects, and we thank their authors:
+
+- [Qwen-VL-Series-Finetune](https://github.com/2U1/Qwen-VL-Series-Finetune) — the training pipeline our SFT/DPO/GRPO code is based on.
+- [Qwen3-VL](https://github.com/qwenlm/qwen3-vl) — the base vision-language models.
+- [TRL](https://github.com/huggingface/trl) — the GRPO trainer our training code extends.
+
+## License
+
+Released under the [Apache License 2.0](LICENSE).
