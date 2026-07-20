@@ -128,7 +128,9 @@ class QwenGRPOTrainer(GRPOTrainer):
         # Get stored images/videos
         images = getattr(self, "_current_images", None)
         videos = getattr(self, "_current_videos", None)
-        video_kwargs = getattr(self, "_current_video_kwargs", None)
+        # `or []` keeps this subscriptable for pylint (the `if video_kwargs` guards
+        # below already handle the empty case); behavior is unchanged.
+        video_kwargs = getattr(self, "_current_video_kwargs", None) or []
 
         model_id = getattr(self.model.config, "_name_or_path", "")
 
