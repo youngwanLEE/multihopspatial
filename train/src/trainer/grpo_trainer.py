@@ -56,7 +56,9 @@ class QwenGRPOTrainer(GRPOTrainer):
         # By default, this method sets `self._signature_columns` to the model's expected inputs.
         # In GRPOTrainer, we preprocess data, so using the model's signature columns doesn't work.
         # Instead, we set them to the columns expected by the `training_step` method, hence the override.
-        if self._signature_columns is None:
+        # _signature_columns is defined by the parent Trainer.__init__; pylint can't
+        # see that across the override, so it false-flags this as use-before-def.
+        if self._signature_columns is None:  # pylint: disable=access-member-before-definition
             self._signature_columns = [
                 "prompt",
                 "assistant",
@@ -274,6 +276,7 @@ class QwenGRPOTrainer(GRPOTrainer):
             )
 
         prompts = [x["prompt"] for x in inputs]
+        video_kwargs = None
 
         if "images" in inputs[0]:
             images = [example.get("images") for example in inputs]
@@ -1193,7 +1196,9 @@ class QwenGRPOTrainer(GRPOTrainer):
 
         opt_model = self.model
 
-        if self.optimizer is None:
+        # self.optimizer is defined by the parent Trainer.__init__; pylint can't see
+        # that across the override, so it false-flags this as use-before-def.
+        if self.optimizer is None:  # pylint: disable=access-member-before-definition
             decay_parameters = get_parameter_names(opt_model, ALL_LAYERNORM_LAYERS)
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
             lr_mapper = {}

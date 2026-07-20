@@ -114,6 +114,7 @@ class GRPODataset(Dataset):
         sources = self.list_data_dict[i]
 
         is_video = False
+        video_kwargs = None
 
         # MSR-specific: Extract response and bbox if available
         msr_response = sources.get("response", None)

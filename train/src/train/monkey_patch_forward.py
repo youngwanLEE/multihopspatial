@@ -72,6 +72,9 @@ def qwen3_vl_moe_mixed_modality_forward(
 
         inputs_embeds += image_embeds.mean() * 0
 
+    # Initialize so the joint-modality path below never reads an unbound name
+    deepstack_image_embeds = None
+    deepstack_video_embeds = None
     if pixel_values is not None:
         image_embeds, deepstack_image_embeds = self.get_image_features(pixel_values, image_grid_thw)
         image_embeds = torch.cat(image_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
@@ -230,6 +233,9 @@ def qwen3_vl_mixed_modality_forward(
 
         inputs_embeds += image_embeds.mean() * 0
 
+    # Initialize so the joint-modality path below never reads an unbound name
+    deepstack_image_embeds = None
+    deepstack_video_embeds = None
     if pixel_values is not None:
         image_embeds, deepstack_image_embeds = self.get_image_features(pixel_values, image_grid_thw)
         image_embeds = torch.cat(image_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
