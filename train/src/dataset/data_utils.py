@@ -1,3 +1,9 @@
+# Portions of this file (get_image_info / get_video_info) are adapted from
+# 2U1/Qwen-VL-Series-Finetune (Apache-2.0):
+# https://github.com/2U1/Qwen-VL-Series-Finetune
+# They are thin wrappers around process_vision_info from the official
+# qwen-vl-utils package (Apache-2.0).
+
 import re
 
 import torch
