@@ -660,7 +660,7 @@
       </div>
       <div class="question-content">
         <p>Evaluating the impact of reasoning complexity across all 37 models reveals a <strong>consistent performance degradation</strong> as the number of hops increases, confirming that compositional spatial reasoning remains a fundamental challenge for current VLMs. Both MCQ accuracy and Acc@50IoU exhibit steep declines from 1-hop to 3-hop.</p>
-        <p>Crucially, this degradation is <strong>exacerbated under ego-centric evaluation</strong>, which requires additional perspective transformation. The widening performance gap between ego-centric and exo-centric views at higher hops suggests that perspective-taking compounds with multi-step reasoning, creating a <strong>multiplicative rather than additive difficulty</strong>.</p>
+        <p>Crucially, this degradation is <strong>exacerbated under ego-centric evaluation</strong>, which requires additional perspective transformation: going from 1-hop to 3-hop, the ego-centric view retains only <strong>55.5%</strong> of its MCQ accuracy (31.9 &rarr; 17.7) against <strong>63.6%</strong> for the exo-centric view (66.2 &rarr; 42.1), and 53.8% against 69.3% under Acc@50IoU. The ego/exo accuracy ratio therefore shrinks from 0.48 to 0.42, suggesting that perspective-taking compounds with multi-step reasoning in a <strong>multiplicative rather than additive</strong> manner.</p>
         <div class="figure-container">
           <img src="static/figures/fig1_hop_bar.png" alt="Average Performance by Hop Count">
           <p class="figure-caption">Average performance by hop count. Performance degrades consistently as reasoning hops increase.</p>
@@ -693,8 +693,8 @@
         <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
       </div>
       <div class="question-content">
-        <p>While reasoning models consistently outperform instant models, this <strong>advantage diminishes under multi-hop pressure</strong>. The initial MCQ gain of up to +8 pp at 1-hop narrows considerably by 3-hop.</p>
-        <p>Critically, even with extended thinking, reasoning models plummet to <strong>sub-20% MCQ accuracy and sub-10% Acc@50IoU</strong> on 3-hop ego-centric tasks. This convergence toward the performance floor reveals that inference-time reasoning (e.g., chain-of-thought) yields diminishing returns as compositional steps accumulate. MultihopSpatial thus exposes a capability ceiling that test-time compute alone cannot resolve.</p>
+        <p>While reasoning models consistently outperform instant models, this <strong>advantage diminishes under multi-hop pressure in the ego-centric setting</strong>: the MCQ gain shrinks from <strong>+11.9 pp</strong> at 1-hop to <strong>+4.9 pp</strong> at 3-hop (and from +8.6 to +3.5 pp under Acc@50IoU), whereas the exo-centric gain stays largely flat (+10.2 to +10.8 pp).</p>
+        <p>Critically, even with extended thinking, reasoning models fall to <strong>roughly 20% MCQ accuracy and below 10% Acc@50IoU</strong> on 3-hop ego-centric tasks. This convergence toward the performance floor reveals that inference-time reasoning (e.g., chain-of-thought) yields diminishing returns as compositional steps accumulate. MultihopSpatial thus exposes a capability ceiling that test-time compute alone cannot resolve.</p>
         <div class="figure-container">
           <img src="static/figures/fig7b_4bars.png" alt="Reasoning vs. Instant Models">
           <p class="figure-caption">Reasoning vs. Instant models. The reasoning advantage shrinks with increasing hop count.</p>
@@ -727,8 +727,8 @@
         <button class="question-toggle" type="button" aria-expanded="false"><i class="fas fa-chevron-down"></i></button>
       </div>
       <div class="question-content">
-        <p>Comparing specialized spatial reasoning models (SRMs) against comparable general-purpose VLMs (&le;10B) reveals a <strong>counterintuitive trend: SRMs consistently underperform</strong> across all metrics and hop counts.</p>
-        <p>This shortfall primarily stems from the robust native grounding inherent in general models (e.g., Qwen3-VL), which most SRMs lack. These findings indicate that current SRMs, typically fine-tuned on single-step QA, <strong>fail to generalize to multi-hop scenarios</strong>, suggesting that general-purpose VLMs provide a stronger foundation for compositional spatial understanding.</p>
+        <p>Comparing specialized spatial reasoning models (SRMs) against comparable general-purpose VLMs (&le;10B) reveals a <strong>split verdict</strong>. Despite being explicitly tailored for spatial reasoning, SRMs are <strong>consistently outperformed by generalists on multi-hop MCQ accuracy</strong> at every hop count, although the gap narrows monotonically as the reasoning chain deepens (&minus;4.6 &rarr; &minus;1.6 &rarr; &minus;0.8 from 1- to 3-hop). Current spatial specialization therefore does not transfer to the compositional, multi-hop reasoning our benchmark targets.</p>
+        <p>The ordering <strong>only reverses under Acc@50IoU</strong>, which counts a prediction as correct only when the target is additionally localized (IoU &ge; 50%): here SRMs surpass their instant generalist counterparts at every hop, and the margin widens with hop depth (&Delta;+1.6, +4.0, +3.4). The advantage of SRMs is thus <strong>confined to grounding rather than reasoning</strong> &mdash; even with lower MCQ accuracy, they localize correctly answered targets more reliably. Generalists are stronger at answer selection while SRMs are stronger at localization, and these complementary strengths suggest that robust multi-hop spatial understanding requires the <strong>joint optimization of reasoning and grounding</strong>, which neither family currently attains.</p>
         <div class="figure-container">
           <img src="static/figures/fig10_srm.png" alt="Spatial Reasoning Models vs. General Models">
           <p class="figure-caption">Spatial Reasoning Models vs. General Models (&le;10B).</p>
