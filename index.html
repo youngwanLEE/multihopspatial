@@ -662,7 +662,7 @@
         <p>Evaluating the impact of reasoning complexity across all 37 models reveals a <strong>consistent performance degradation</strong> as the number of hops increases, confirming that compositional spatial reasoning remains a fundamental challenge for current VLMs. Both MCQ accuracy and Acc@50IoU exhibit steep declines from 1-hop to 3-hop.</p>
         <p>Crucially, this degradation is <strong>exacerbated under ego-centric evaluation</strong>, which requires additional perspective transformation: going from 1-hop to 3-hop, the ego-centric view retains only <strong>55.5%</strong> of its MCQ accuracy (31.9 &rarr; 17.7) against <strong>63.6%</strong> for the exo-centric view (66.2 &rarr; 42.1), and 53.8% against 69.3% under Acc@50IoU. The ego/exo accuracy ratio therefore shrinks from 0.48 to 0.42, suggesting that perspective-taking compounds with multi-step reasoning in a <strong>multiplicative rather than additive</strong> manner.</p>
         <div class="figure-container">
-          <img src="static/figures/fig1_hop_bar.png" alt="Average Performance by Hop Count">
+          <img src="static/figures/fig1_hop_bar.png?v=20260904" alt="Average Performance by Hop Count">
           <p class="figure-caption">Average performance by hop count. Performance degrades consistently as reasoning hops increase.</p>
         </div>
       </div>
@@ -679,7 +679,7 @@
         <p>Beyond a simple performance drop, ego-centric evaluation fundamentally alters capability visibility. Under exo-centric conditions, our Acc@50IoU metric clearly <strong>distinguishes grounding-capable models</strong> (e.g., Qwen3-VL) from those lacking native localization (e.g., InternVL-3.5) despite their similar MCQ accuracies.</p>
         <p>Conversely, ego-centric evaluation acts as an <strong>evaluation blind spot</strong>: it suppresses even strong grounding models to a 20&ndash;25% floor, completely masking these capability gaps. This compression highlights the necessity of evaluating perspectives jointly and reinforces Acc@50IoU as an essential metric to expose disparities invisible to conventional MCQ evaluation.</p>
         <div class="figure-container">
-          <img src="static/figures/fig11_scatter.png" alt="Scatter plots across perspectives">
+          <img src="static/figures/fig11_scatter.png?v=20260904" alt="Scatter plots across perspectives">
           <p class="figure-caption">Model performance scatter plots. Ego-centric evaluation masks grounding differences visible in exo-centric conditions.</p>
         </div>
       </div>
@@ -696,7 +696,7 @@
         <p>While reasoning models consistently outperform instant models, this <strong>advantage diminishes under multi-hop pressure in the ego-centric setting</strong>: the MCQ gain shrinks from <strong>+11.9 pp</strong> at 1-hop to <strong>+4.9 pp</strong> at 3-hop (and from +8.6 to +3.5 pp under Acc@50IoU), whereas the exo-centric gain stays largely flat (+10.2 to +10.8 pp).</p>
         <p>Critically, even with extended thinking, reasoning models fall to <strong>roughly 20% MCQ accuracy and below 10% Acc@50IoU</strong> on 3-hop ego-centric tasks. This convergence toward the performance floor reveals that inference-time reasoning (e.g., chain-of-thought) yields diminishing returns as compositional steps accumulate. MultihopSpatial thus exposes a capability ceiling that test-time compute alone cannot resolve.</p>
         <div class="figure-container">
-          <img src="static/figures/fig7b_4bars.png" alt="Reasoning vs. Instant Models">
+          <img src="static/figures/fig7b_4bars.png?v=20260904" alt="Reasoning vs. Instant Models">
           <p class="figure-caption">Reasoning vs. Instant models. The reasoning advantage shrinks with increasing hop count.</p>
         </div>
       </div>
@@ -713,7 +713,7 @@
         <p>While proprietary models hold a slight MCQ advantage in ego-centric tasks&mdash;indicating stronger perspective-taking&mdash;<strong>open-weight models consistently dominate in Acc@50IoU</strong>. This reversal stems from a distinct asymmetry in visual grounding capabilities.</p>
         <p>Proprietary models exhibit high variance: while the Gemini-3 series demonstrates robust localization, others (e.g., GPT-5.2, Claude) lack native grounding, significantly dragging down the group average. Conversely, open-weight families (e.g., Qwen3-VL, GLM-4.6V) maintain <strong>consistently high grounding performance</strong>, forming a dense cluster at 60%+ in exo-centric Acc@50IoU.</p>
         <div class="figure-container">
-          <img src="static/figures/fig8_errorbar.png" alt="Open-weight vs. Proprietary models">
+          <img src="static/figures/fig8_errorbar.png?v=20260904" alt="Open-weight vs. Proprietary models">
           <p class="figure-caption">Open-weight vs. Proprietary models across hop count and viewpoint.</p>
         </div>
       </div>
@@ -730,7 +730,7 @@
         <p>Comparing specialized spatial reasoning models (SRMs) against comparable general-purpose VLMs (&le;10B) reveals a <strong>split verdict</strong>. Despite being explicitly tailored for spatial reasoning, SRMs are <strong>consistently outperformed by generalists on multi-hop MCQ accuracy</strong> at every hop count, although the gap narrows monotonically as the reasoning chain deepens (&minus;4.6 &rarr; &minus;1.6 &rarr; &minus;0.8 from 1- to 3-hop). Current spatial specialization therefore does not transfer to the compositional, multi-hop reasoning our benchmark targets.</p>
         <p>The ordering <strong>only reverses under Acc@50IoU</strong>, which counts a prediction as correct only when the target is additionally localized (IoU &ge; 50%): here SRMs surpass their instant generalist counterparts at every hop, and the margin widens with hop depth (&Delta;+1.6, +4.0, +3.4). The advantage of SRMs is thus <strong>confined to grounding rather than reasoning</strong> &mdash; even with lower MCQ accuracy, they localize correctly answered targets more reliably. Generalists are stronger at answer selection while SRMs are stronger at localization, and these complementary strengths suggest that robust multi-hop spatial understanding requires the <strong>joint optimization of reasoning and grounding</strong>, which neither family currently attains.</p>
         <div class="figure-container">
-          <img src="static/figures/fig10_srm.png" alt="Spatial Reasoning Models vs. General Models">
+          <img src="static/figures/fig10_srm.png?v=20260904" alt="Spatial Reasoning Models vs. General Models">
           <p class="figure-caption">Spatial Reasoning Models vs. General Models (&le;10B).</p>
         </div>
       </div>
@@ -747,16 +747,16 @@
         <p>A striking disconnect exists between answer selection and spatial localization: most models fall far below the y=x line, indicating that high MCQ accuracy does not entail accurate grounding. Across all 37 models, the <strong>average ungrounded ratio reaches 59%</strong>, meaning more than half of correctly answered questions lack proper spatial localization.</p>
         <p>This ratio varies dramatically by category: proprietary instant models exhibit <strong>93% ungrounded accuracy</strong>, while open-weight reasoning models achieve the lowest at 43%. At the extreme, models such as Gemma-3-IT, Molmo2, and Claude-Sonnet-4.5 exceed <strong>98% ungrounded</strong>, effectively answering through shortcuts without any spatial understanding.</p>
         <div class="figure-container">
-          <img src="static/figures/fig4a_lucky_guess.png" alt="Grounded vs Ungrounded accuracy per model" style="max-width: 100%;">
+          <img src="static/figures/fig4a_lucky_guess.png?v=20260904" alt="Grounded vs Ungrounded accuracy per model" style="max-width: 100%;">
           <p class="figure-caption">Grounded (Acc@50IoU) vs. Ungrounded accuracy per model. Hatched regions indicate ungrounded responses.</p>
         </div>
         <div class="two-col" style="grid-template-columns: 3fr 2fr; align-items: end;">
           <div class="figure-container">
-            <img src="static/figures/fig3_grounding_gap.png" alt="Grounding Gap" style="width: 100%; height: auto;">
+            <img src="static/figures/fig3_grounding_gap.png?v=20260904" alt="Grounding Gap" style="width: 100%; height: auto;">
             <p class="figure-caption">Grounding Gap: MCQ Acc. vs. Acc@50IoU.</p>
           </div>
           <div class="figure-container">
-            <img src="static/figures/fig4b_lucky_cat.png" alt="Ungrounded Ratio by Category" style="width: 100%; height: auto;">
+            <img src="static/figures/fig4b_lucky_cat.png?v=20260904" alt="Ungrounded Ratio by Category" style="width: 100%; height: auto;">
             <p class="figure-caption">Ungrounded Ratio by Model Category.</p>
           </div>
         </div>
@@ -791,7 +791,7 @@
         <p>Analyzing error rates across spatial tag combinations reveals that while reasoning models consistently outperform instant models, <strong>multi-tag compositions remain a critical bottleneck</strong>. Specifically, the Position-Relation (P-R) combination incurs significantly higher errors than single-tag settings, highlighting the severe difficulty of jointly handling positional localization and relational comparison.</p>
         <p>Even specialized spatial reasoning models, which achieve the lowest overall errors, exhibit non-trivial failures on these complex compositions. This underscores that <strong>true compositional spatial reasoning remains an unresolved challenge</strong> across the current VLM ecosystem.</p>
         <div class="figure-container">
-          <img src="static/figures/error_rate_radar_5cat.png" alt="Error rates by tag combination">
+          <img src="static/figures/error_rate_radar_5cat.png?v=20260904" alt="Error rates by tag combination">
           <p class="figure-caption">Average error rates (%) by tag combination across model categories. A, R, and P denote Attribute, Relation, and Position.</p>
         </div>
       </div>
